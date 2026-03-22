@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BIST Analyzer</title>
+
+<style>
+body {
+    background: #0f172a;
+    color: white;
+    font-family: Arial;
+    padding: 15px;
+    margin: 0;
+}
+
+.container {
+    max-width: 500px;
+    margin: auto;
+}
+
+.input-row {
+    display: flex;
+    gap: 10px;
+}
+
+input {
+    flex: 1;
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    font-size: 16px;
+}
+
+button {
+    padding: 12px;
+    border-radius: 10px;
+    border: none;
+    background: #2563eb;
+    color: white;
+}
+
+/* TOP BUTTONS */
+.top-buttons {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.top-buttons button {
+    flex: 1;
+    background: #1e40af;
+}
+
+/* suggestions */
+#suggestions {
+    background: #1e293b;
+    border-radius: 10px;
+    margin-top: 5px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.suggestion-item {
+    padding: 10px;
+    border-bottom: 1px solid #334155;
+    cursor: pointer;
+}
+
+.suggestion-item:hover {
+    background: #334155;
+}
+
+/* card */
+.card {
+    margin-top: 20px;
+    padding: 15px;
+    background: #1e293b;
+    border-radius: 10px;
+}
+
+.big {
+    font-size: 22px;
+}
+
+.green { color: #22c55e; }
+.red { color: #ef4444; }
+.orange { color: #f59e0b; }
+
+/* bar */
+.bar-container {
+    width: 100%;
+    height: 10px;
+    background: #334155;
+    border-radius: 10px;
+    margin-top: 5px;
+}
+
+.bar {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(to right, #ef4444, #f59e0b, #22c55e);
+}
+
+/* list */
+.list-item {
+    background: #1e293b;
+    margin-top: 8px;
+    padding: 10px;
+    border-radius: 8px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>📊 BIST Analyzer</h2>
+
+<div class="top-buttons">
+    <button onclick="showTop(10)">Top 10</button>
+    <button onclick="showTop(50)">Top 50</button>
+    <button onclick="showTop(100)">Top 100</button>
+</div>
+
+<div class="input-row">
+    <input id="symbol" placeholder="Hisse gir">
+    <button onclick="search()">Analiz Et</button>
+</div>
+
+<div id="suggestions"></div>
+<div id="result"></div>
+<div id="toplist"></div>
+
+</div>
+
+<script>
+
+let data = [];
+
+fetch("https://www.dropbox.com/scl/fi/s238wef23xwfr25i55kt2/data.json?rlkey=z1gtuzlbz727jk1iypxoz7ws4&st=2ud3byxb&raw=1")
+.then(res => {
+    console.log("STATUS:", res.status);
+    return res.json();
+})
+.then(json => {
+    console.log("DATA LENGTH:", json.length);
+    data = json;
+    showTop(10);
+})
+.catch(err => {
+    console.error("ERROR:", err);
+});
+
+/* helpers */
+function normalize(score) {
+    let min = -2, max = 2;
+    return Math.max(0, Math.min(100, ((score - min)/(max-min))*100));
+}
+
+function getColor(score) {
+    if (score > 2) return "green";
+    if (score > 0) return "orange";
+    return "red";
+}
+
+function getSignal(score) {
+    if (score > 2) return "🔥 Güçlü AL";
+    if (score > 1) return "🟢 İyi";
+    if (score > 0) return "🟡 Nötr";
+    return "🔴 Zayıf";
+}
+
+function getMomentumLabel(m) {
+    if (m > 10) return "🔥 Güçlü AL";
+    if (m > 0) return "🟡 Orta";
+    return "🔴 Zayıf";
+}
+
+/* autocomplete */
+document.getElementById("symbol").addEventListener("input", function() {
+
+    let value = this.value.toUpperCase().trim();
+    let box = document.getElementById("suggestions");
+
+    if (!value) {
+        box.innerHTML = "";
+        return;
+    }
+
+    let filtered = data
+        .filter(x => x.Kod && x.Kod.toUpperCase().startsWith(value))
+        .sort((a,b)=> (b.Score||0)-(a.Score||0))
+        .slice(0,50);
+
+    box.innerHTML = "";
+
+    filtered.forEach(item => {
+
+        let emoji = "🔴";
+        if (item.Score > 2) emoji = "🔥";
+        else if (item.Score > 1) emoji = "🟢";
+        else if (item.Score > 0) emoji = "🟡";
+
+        let div = document.createElement("div");
+        div.className = "suggestion-item";
+        div.innerText = `${emoji} ${item.Kod} (${item.Score?.toFixed(2)})`;
+
+        div.onclick = () => {
+            document.getElementById("symbol").value = item.Kod;
+            box.innerHTML = "";
+            search();
+        };
+
+        box.appendChild(div);
+    });
+});
+
+/* search */
+function search() {
+
+    let s = document.getElementById("symbol").value.toUpperCase().trim();
+    let stock = data.find(x => x.Kod === s);
+
+    if (!stock) {
+        document.getElementById("result").innerHTML = "❌ Hisse bulunamadı";
+        return;
+    }
+
+    let score = stock.Score || 0;
+    let percent = normalize(score);
+    let color = getColor(score);
+
+    let cap = stock.SmallCap ? "⚠️ Düşük Sermaye<br>" : "";
+
+    document.getElementById("result").innerHTML = `
+        <div class="card">
+
+            <div class="big">#${stock.Super_Rank ?? "-"} ${stock.Kod}</div>
+
+            🏭 Sektör: ${stock.Sektor ?? "NA"}<br>
+
+            💰 FK: ${stock.FK?.toFixed(2) ?? "NA"} | 
+            PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
+
+            📊 Karlılık: ${(stock.NetMarj*100)?.toFixed(1) ?? "NA"}%<br>
+
+            📉 Volatilite: ${stock.Volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
+
+            ${cap}
+
+            👨‍💼 Analist: ${stock.AnalistSayisi ?? "YOK"}<br>
+            📦 Model Portföy: ${stock.ModelPortfoy ?? "YOK"}<br>
+            🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"}(${stock.PotansiyelGetiri?.toFixed(2) ?? "NA"}%)<br>
+
+            <br>
+
+            <div class="big ${color}">
+                Score: ${score.toFixed(2)}
+            </div>
+
+            <div class="bar-container">
+                <div class="bar" style="width:${percent}%"></div>
+            </div>
+
+            <br>
+
+            <button onclick="toggleDetail('${stock.Kod}')">Çeyreklik Kârlar</button>
+
+            <div id="d-${stock.Kod}" style="display:none; margin-top:10px;">
+                Q1: ${stock.NetKar_Q1?.toFixed(2) ?? "-"} MTL<br>
+                Q2: ${stock.NetKar_Q2?.toFixed(2) ?? "-"} MTL<br>
+                Q3: ${stock.NetKar_Q3?.toFixed(2) ?? "-"} MTL<br>
+                Q4: ${stock.NetKar_Q4?.toFixed(2) ?? "-"} MTL
+            </div>
+
+            <br>
+
+            <div class="big ${color}">
+                ${getSignal(score)}
+            </div>
+
+        </div>
+    `;
+}
+
+/* top list */
+function showTop(n) {
+
+    let sorted = [...data]
+        .sort((a,b)=> {
+            let ra = a.Super_Rank ?? 9999;
+            let rb = b.Super_Rank ?? 9999;
+            return ra - rb;
+        })
+        .slice(0,n);
+
+    let html = "<h3>📊 En Güçlü Hisseler</h3>";
+
+    sorted.forEach(s => {
+
+        let percent = normalize(s.Score || 0);
+        let cap = s.SmallCap ? "⚠️" : "";
+
+        html += `
+            <div class="list-item">
+
+                <b>#${s.Super_Rank ?? "-"} ${s.Kod} ${cap}</b><br>
+
+                🏭 ${s.Sektor ?? "NA"}<br>
+
+                💰 FK: ${s.FK?.toFixed(2) ?? "NA"} | 
+                PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
+
+                📊 ${(s.NetMarj*100)?.toFixed(1) ?? "NA"}% | 
+                📉 ${s.Volatilite?.toFixed(2) ?? "NA"}%<br>
+
+                <div class="bar-container">
+                    <div class="bar" style="width:${percent}%"></div>
+                </div>
+
+                <button onclick="toggleDetail('${s.Kod}')">Çeyreklik Kârlar</button>
+
+                <div id="d-${s.Kod}" style="display:none; margin-top:6px;">
+                Q1: ${s.NetKar_Q1?.toFixed(2) ?? "-"} MTL<br>
+                Q2: ${s.NetKar_Q2?.toFixed(2) ?? "-"} MTL<br>
+                Q3: ${s.NetKar_Q3?.toFixed(2) ?? "-"} MTL<br>
+                Q4: ${s.NetKar_Q4?.toFixed(2) ?? "-"} MTL
+                </div>
+
+            </div>
+        `;
+    });
+
+    document.getElementById("toplist").innerHTML = html;
+}
+function toggleDetail(kod) {
+    let el = document.getElementById("d-" + kod);
+    el.style.display = (el.style.display === "none") ? "block" : "none";
+}
+</script>
+
+</body>
+</html>
