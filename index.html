@@ -109,6 +109,20 @@ button {
     padding: 10px;
     border-radius: 8px;
 }
+
+.score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.signal {
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 8px;
+    background: #334155;
+}
 </style>
 </head>
 
@@ -285,10 +299,6 @@ function search() {
             </div>
 
             <br>
-
-            <div class="big ${color}">
-                ${getSignal(score)}
-            </div>
 
         </div>
     `;
