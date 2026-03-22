@@ -127,10 +127,33 @@ button {
 .green-bg { background: rgba(34,197,94,0.2); }
 .orange-bg { background: rgba(245,158,11,0.2); }
 .red-bg { background: rgba(239,68,68,0.2); }
-    
+.hisse-link {
+    color: #60a5fa;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.hisse-link:hover {
+    text-decoration: underline;
+}
+
+/* tooltip */
+#tooltip {
+    position: fixed;
+    background: #020617;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 13px;
+    z-index: 9999;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    pointer-events: none;
+    display: none;
+    min-width: 160px;
+}
 </style>
 </head>
-
+<div id="tooltip"></div>
 <body>
 
 <div class="container">
@@ -330,7 +353,16 @@ function showTop(n) {
         html += `
             <div class="list-item">
 
-                <b>#${s.Super_Rank ?? "-"} ${s.Kod} ${cap}</b><br>
+                <b>
+                #${s.Super_Rank ?? "-"} 
+                <span class="hisse-link"
+                      onclick="secHisse('${s.Kod}')"
+                      onmouseenter="showTooltip(event, '${s.Kod}')"
+                      onmouseleave="hideTooltip()">
+                    ${s.Kod}
+                </span>
+                ${cap}
+                </b><br>
 
                 🏭 ${s.Sektor ?? "NA"}<br>
 
@@ -363,6 +395,64 @@ function toggleDetail(kod) {
     let el = document.getElementById("d-" + kod);
     el.style.display = (el.style.display === "none") ? "block" : "none";
 }
+    function secHisse(kod) {
+    document.getElementById("symbol").value = kod;
+    search();
+    history.pushState(null, "", "?kod=" + kod);
+}
+
+/* tooltip */
+function showTooltip(e, kod) {
+    const t = document.getElementById("tooltip");
+    const h = data.find(x => x.Kod === kod);
+    if (!h) return;
+
+    let score = h.Score || 0;
+
+    let renk = score > 2 ? "#22c55e" :
+                score > 1 ? "#4ade80" :
+                score > 0 ? "#facc15" : "#ef4444";
+
+    t.innerHTML = `
+        <b>${kod}</b><br>
+        FK: ${h.FK?.toFixed(2) ?? "-"}<br>
+        PD/DD: ${h.PD_DD?.toFixed(2) ?? "-"}<br>
+        Karlılık: ${(h.Net_Margin*100)?.toFixed(1) ?? "-"}%<br>
+        Skor: ${score.toFixed(2)}
+
+        <div style="margin-top:6px;height:6px;background:#334155;border-radius:4px;">
+            <div style="width:${normalize(score)}%;background:${renk};height:100%;border-radius:4px;"></div>
+        </div>
+    `;
+
+    t.style.display = "block";
+    t.style.left = (e.clientX + 10) + "px";
+    t.style.top = (e.clientY + 10) + "px";
+}
+
+function hideTooltip() {
+    document.getElementById("tooltip").style.display = "none";
+}
+
+/* mouse takip */
+document.addEventListener("mousemove", (e) => {
+    const t = document.getElementById("tooltip");
+    if (t.style.display === "block") {
+        t.style.left = (e.clientX + 10) + "px";
+        t.style.top = (e.clientY + 10) + "px";
+    }
+});
+
+/* URL'den aç */
+window.addEventListener("load", () => {
+    const params = new URLSearchParams(window.location.search);
+    const kod = params.get("kod");
+
+    if (kod) {
+        document.getElementById("symbol").value = kod;
+        setTimeout(() => search(), 300);
+    }
+});
 </script>
 
 </body>
