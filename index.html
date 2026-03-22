@@ -250,7 +250,7 @@ function search() {
             💰 FK: ${stock.FK?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-            📊 Karlılık: ${(stock.NetMarj*100)?.toFixed(1) ?? "NA"}%<br>
+            📊 Karlılık: ${(stock.Net_Margin*100)?.toFixed(1) ?? "NA"}%<br>
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
             📉 Volatilite: ${stock.Volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
 
@@ -319,7 +319,7 @@ function showTop(n) {
                 💰 FK: ${s.FK?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-                📊 ${(s.NetMarj*100)?.toFixed(1) ?? "NA"}% | 
+                📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
                 📉 ${s.Volatilite?.toFixed(2) ?? "NA"}%<br>
 
                 <div class="bar-container">
