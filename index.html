@@ -142,17 +142,23 @@ let data = [];
 fetch("https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e")
 .then(res => {
     console.log("STATUS:", res.status);
-    return res.json();
+    return res.text();  // 🔥 JSON değil text al
 })
-.then(json => {
-    console.log("DATA LENGTH:", json.length);
-    data = json;
-    showTop(10);
+.then(text => {
+    console.log("RAW:", text.slice(0, 100));  // ilk 100 char
+
+    try {
+        const json = JSON.parse(text);
+        console.log("DATA LENGTH:", json.length);
+        data = json;
+        showTop(10);
+    } catch (e) {
+        console.error("NOT JSON:", e);
+    }
 })
 .catch(err => {
-    console.error("ERROR:", err);
+    console.error("FETCH ERROR:", err);
 });
-
 /* helpers */
 function normalize(score) {
     let min = -2, max = 2;
