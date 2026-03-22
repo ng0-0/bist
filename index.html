@@ -412,13 +412,10 @@ function showByAnalyst() {
 
     let sorted = [...data]
         .filter(x => x.AnalistSayisi != null)
-        .sort((a,b)=> 
-            (b.AnalistSayisi || 0)*2 + (b.Score || 0) 
-          - (a.AnalistSayisi || 0)*2 - (a.Score || 0)
-        )
+        .sort((a,b)=> smartScore(b) - smartScore(a))
         .slice(0,50);
 
-    let html = "<h3>👨‍💼 En Çok Analist Takip Eden Hisseler</h3>";
+    let html = "<h3>🧠 Smart Para (Analist + Model + Getiri)</h3>";
 
     sorted.forEach(s => {
 
@@ -439,14 +436,11 @@ function showByAnalyst() {
                 ${cap}
                 </b><br>
 
-                👨‍💼 Analist: ${s.AnalistSayisi ?? "0"}<br>
-                🏭 ${s.Sektor ?? "NA"}<br>
+                👨‍💼 ${s.AnalistSayisi ?? 0} | 
+                📦 ${s.ModelPortfoy ?? 0} | 
+                🎯 ${s.PotansiyelGetiri?.toFixed(1) ?? "0"}%<br>
 
-                💰 FK: ${s.FK?.toFixed(2) ?? "NA"} | 
-                PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
-
-                📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
-                📉 ${s.Volatilite?.toFixed(2) ?? "NA"}%<br>
+                🧠 Skor: ${smartScore(s).toFixed(2)}<br>
 
                 <div class="bar-container">
                     <div class="bar" style="width:${percent}%"></div>
