@@ -408,10 +408,18 @@ function secHisse(kod) {
         });
     }, 100);
 }
+function smartScore(x) {
+    let a = Number(x.AnalistSayisi) || 0;
+    let m = Number(x.ModelPortfoy) || 0;
+    let g = Number(x.PotansiyelGetiri) || 0;
+
+    return Math.log1p(a) * Math.log1p(m) * (1 + g/100);
+}
+
 function showByAnalyst() {
 
     let sorted = [...data]
-        .filter(x => x.AnalistSayisi != null)
+        .filter(x => x.AnalistSayisi || x.ModelPortfoy || x.PotansiyelGetiri)
         .sort((a,b)=> smartScore(b) - smartScore(a))
         .slice(0,50);
 
@@ -438,7 +446,7 @@ function showByAnalyst() {
 
                 👨‍💼 ${s.AnalistSayisi ?? 0} | 
                 📦 ${s.ModelPortfoy ?? 0} | 
-                🎯 ${s.PotansiyelGetiri?.toFixed(1) ?? "0"}%<br>
+                🎯 ${Number(s.PotansiyelGetiri || 0).toFixed(1)}%<br>
 
                 🧠 Skor: ${smartScore(s).toFixed(2)}<br>
 
