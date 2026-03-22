@@ -139,7 +139,7 @@ button {
 
 let data = [];
 
-fetch("https://www.dropbox.com/scl/fi/s238wef23xwfr25i55kt2/data.json?rlkey=z1gtuzlbz727jk1iypxoz7ws4&st=2ud3byxb&raw=1")
+fetch("data.json?t=" + Date.now())
 .then(res => {
     console.log("STATUS:", res.status);
     return res.json();
