@@ -164,6 +164,7 @@ button {
     <button onclick="showTop(10)">Top 10</button>
     <button onclick="showTop(50)">Top 50</button>
     <button onclick="showTop(100)">Top 100</button>
+    <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
 </div>
 
 <div class="input-row">
@@ -395,12 +396,68 @@ function toggleDetail(kod) {
     let el = document.getElementById("d-" + kod);
     el.style.display = (el.style.display === "none") ? "block" : "none";
 }
-    function secHisse(kod) {
+function secHisse(kod) {
     document.getElementById("symbol").value = kod;
     search();
-    history.pushState(null, "", "?kod=" + kod);
-}
 
+    history.pushState(null, "", "?kod=" + kod);
+
+    setTimeout(() => {
+        document.getElementById("result").scrollIntoView({
+            behavior: "smooth"
+        });
+    }, 100);
+}
+function showByAnalyst() {
+
+    let sorted = [...data]
+        .filter(x => x.AnalistSayisi != null)
+        .sort((a,b)=> 
+            (b.AnalistSayisi || 0)*2 + (b.Score || 0) 
+          - (a.AnalistSayisi || 0)*2 - (a.Score || 0)
+        )
+        .slice(0,50);
+
+    let html = "<h3>👨‍💼 En Çok Analist Takip Eden Hisseler</h3>";
+
+    sorted.forEach(s => {
+
+        let percent = normalize(s.Score || 0);
+        let cap = s.SmallCap ? "⚠️" : "";
+
+        html += `
+            <div class="list-item">
+
+                <b>
+                #${s.Super_Rank ?? "-"} 
+                <span class="hisse-link"
+                      onclick="secHisse('${s.Kod}')"
+                      onmouseenter="showTooltip(event, '${s.Kod}')"
+                      onmouseleave="hideTooltip()">
+                    ${s.Kod}
+                </span>
+                ${cap}
+                </b><br>
+
+                👨‍💼 Analist: ${s.AnalistSayisi ?? "0"}<br>
+                🏭 ${s.Sektor ?? "NA"}<br>
+
+                💰 FK: ${s.FK?.toFixed(2) ?? "NA"} | 
+                PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
+
+                📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
+                📉 ${s.Volatilite?.toFixed(2) ?? "NA"}%<br>
+
+                <div class="bar-container">
+                    <div class="bar" style="width:${percent}%"></div>
+                </div>
+
+            </div>
+        `;
+    });
+
+    document.getElementById("toplist").innerHTML = html;
+}
 /* tooltip */
 function showTooltip(e, kod) {
     const t = document.getElementById("tooltip");
