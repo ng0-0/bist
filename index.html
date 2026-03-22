@@ -124,6 +124,10 @@ button {
     border-radius: 10px;
     background: #334155;
 }
+.green-bg { background: rgba(34,197,94,0.2); }
+.orange-bg { background: rgba(245,158,11,0.2); }
+.red-bg { background: rgba(239,68,68,0.2); }
+    
 </style>
 </head>
 
@@ -280,7 +284,7 @@ function search() {
                 <div class="big ${color}">
                     Score: ${score.toFixed(2)}
                 </div>
-                <div class="signal ${color}">
+                <div class="signal ${color}-bg">
                     ${getSignal(score)}
                 </div>
             </div>
