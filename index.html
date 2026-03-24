@@ -303,12 +303,15 @@ function search() {
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
             📉 Volatilite: ${stock.Volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
             📈 Trend: ${stock.trend}/3<br>
+
             ${cap}
 
             👨‍💼 Analist: ${stock.AnalistSayisi ?? "YOK"}<br>
             📦 Model Portföy: ${stock.ModelPortfoy ?? "YOK"}<br>
             🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"}(${stock.PotansiyelGetiri?.toFixed(2) ?? "NA"}%)<br>
-
+            <div style="margin-top:6px; color:#94a3b8;">
+                📌 ${s.yorum ?? ""}
+            </div>
             <br>
             <div class="score-row">
                 <div class="big ${color}">
