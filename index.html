@@ -301,7 +301,7 @@ function search() {
 
             📊 Karlılık: ${(stock.Net_Margin*100)?.toFixed(1) ?? "NA"}%<br>
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
-            📉 Volatilite: ${stock.Volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
+            📉 Volatilite: ${stock.volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
             📈 Trend: ${stock.trend}/3<br>
 
             ${cap}
@@ -376,11 +376,11 @@ function showTop(n) {
 
                 🏭 ${s.Sektor ?? "NA"}<br>
 
-                💰 FK: ${s.FK?.toFixed(2) ?? "NA"} | 
+                💰 FK: ${s.fs?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
-                📉 Volatilite: ${s.Volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
+                📉 Volatilite: ${s.volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
                 📌 ${s.yorum ?? ""}
@@ -463,7 +463,7 @@ function showByAnalyst() {
                 📦 ${s.ModelPortfoy ?? 0} | 
                 🎯 ${Number(s.PotansiyelGetiri || 0).toFixed(1)}%<br>
 
-                🧠 Skor: ${smartScore(s).toFixed(2)}<br>
+                🧠 Skor: ${score.toFixed(2)}<br>
 
                 <div class="bar-container">
                     <div class="bar" style="width:${percent}%"></div>
@@ -490,7 +490,7 @@ function showTooltip(e, kod) {
     t.innerHTML = `
         <b>${kod}</b><br>
         Karar: ${karar}<br>
-        FK: ${h.FK?.toFixed(2) ?? "-"}<br>
+        FK: ${h.fs?.toFixed(2) ?? "-"}<br>
         PD/DD: ${h.PD_DD?.toFixed(2) ?? "-"}<br>
         Karlılık: ${(h.Net_Margin*100)?.toFixed(1) ?? "-"}%<br>
         Skor: ${score.toFixed(2)}
