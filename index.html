@@ -204,21 +204,25 @@ fetch("https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?
 });
 /* helpers */
 function normalize(score) {
-    let min = -2, max = 2;
-    return Math.max(0, Math.min(100, ((score - min)/(max-min))*100));
+    return Math.max(0, Math.min(100, score * 100));
 }
 
-function getColor(score) {
-    if (score > 2) return "green";
-    if (score > 0) return "orange";
+function getColor(karar) {
+    if (karar === "GÜÇLÜ AL" || karar === "AL") return "green";
+    if (karar === "TUT" || karar === "NÖTR") return "orange";
     return "red";
 }
 
-function getSignal(score) {
-    if (score > 2) return "🔥 Güçlü AL";
-    if (score > 1) return "🟢 İyi";
-    if (score > 0) return "🟡 Nötr";
-    return "🔴 Zayıf";
+function getSignal(karar) {
+    switch(karar) {
+        case "GÜÇLÜ AL": return "🔥 GÜÇLÜ AL";
+        case "AL": return "🟢 AL";
+        case "TUT": return "🟡 TUT";
+        case "NÖTR": return "⚪ NÖTR";
+        case "ZAYIF": return "🟠 ZAYIF";
+        case "SAT": return "🔴 SAT";
+        default: return "❓";
+    }
 }
 
 function getMomentumLabel(m) {
@@ -248,9 +252,9 @@ document.getElementById("symbol").addEventListener("input", function() {
     filtered.forEach(item => {
 
         let emoji = "🔴";
-        if (item.Score > 2) emoji = "🔥";
-        else if (item.Score > 1) emoji = "🟢";
-        else if (item.Score > 0) emoji = "🟡";
+        if (item.Score > 0.75) emoji = "🔥";
+        else if (item.Score > 0.65) emoji = "🟢";
+        else if (item.Score > 0.45) emoji = "🟡";
 
         let div = document.createElement("div");
         div.className = "suggestion-item";
@@ -278,8 +282,10 @@ function search() {
     }
 
     let score = stock.Score || 0;
+    let karar = stock.karar || "NÖTR";
+    
     let percent = normalize(score);
-    let color = getColor(score);
+    let color = getColor(karar);
 
     let cap = stock.SmallCap ? "⚠️ Düşük Sermaye<br>" : "";
 
@@ -309,7 +315,7 @@ function search() {
                     Score: ${score.toFixed(2)}
                 </div>
                 <div class="signal ${color}-bg">
-                    ${getSignal(score)}
+                    ${getSignal(karar)}
                 </div>
             </div>
             <div class="bar-container">
@@ -372,7 +378,9 @@ function showTop(n) {
 
                 📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
                 📉 ${s.Volatilite?.toFixed(2) ?? "NA"}%<br>
-
+                <div style="margin-top:6px; color:#94a3b8;">
+                📌 ${stock.yorum ?? ""}
+                </div>
                 <div class="bar-container">
                     <div class="bar" style="width:${percent}%"></div>
                 </div>
@@ -467,18 +475,19 @@ function showTooltip(e, kod) {
     if (!h) return;
 
     let score = h.Score || 0;
-
-    let renk = score > 2 ? "#22c55e" :
-                score > 1 ? "#4ade80" :
-                score > 0 ? "#facc15" : "#ef4444";
+    let karar = h.karar || "NÖTR";
+    let renk = score > 0.75 ? "#22c55e" :
+                score > 0.60 ? "#4ade80" :
+                score > 0.45 ? "#facc15" : "#ef4444";
 
     t.innerHTML = `
         <b>${kod}</b><br>
+        Karar: ${karar}<br>
         FK: ${h.FK?.toFixed(2) ?? "-"}<br>
         PD/DD: ${h.PD_DD?.toFixed(2) ?? "-"}<br>
         Karlılık: ${(h.Net_Margin*100)?.toFixed(1) ?? "-"}%<br>
         Skor: ${score.toFixed(2)}
-
+    
         <div style="margin-top:6px;height:6px;background:#334155;border-radius:4px;">
             <div style="width:${normalize(score)}%;background:${renk};height:100%;border-radius:4px;"></div>
         </div>
