@@ -377,10 +377,14 @@ function showTop(n) {
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
-                📉 ${s.Volatilite?.toFixed(2) ?? "NA"}%<br>
+                📉 Volatilite: ${s.Volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
+                
                 <div style="margin-top:6px; color:#94a3b8;">
-                📌 ${stock.yorum ?? ""}
+                📌 ${s.yorum ?? ""}
                 </div>
+                
+                ${cap}
+                
                 <div class="bar-container">
                     <div class="bar" style="width:${percent}%"></div>
                 </div>
