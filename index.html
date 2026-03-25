@@ -289,6 +289,9 @@ function search() {
 
     let cap = stock.SmallCap ? "⚠️ Düşük Sermaye<br>" : "";
 
+    // ✅ BURAYA ALDIK
+    let istikrar = 1 - (stock.volatilite || 0);
+
     document.getElementById("result").innerHTML = `
         <div class="card">
 
@@ -301,10 +304,10 @@ function search() {
 
             📊 Karlılık: ${(stock.Net_Margin)?.toFixed(1) ?? "NA"}%<br>
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
-            let istikrar = 1 - (s.volatilite || 0);
 
             📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% 
             (${istikrar > 0.7 ? "yüksek" : istikrar > 0.4 ? "orta" : "düşük"})<br>
+
             📈 Trend: ${stock.trend}/3<br>
 
             ${cap}
@@ -312,10 +315,13 @@ function search() {
             👨‍💼 Analist: ${stock.AnalistSayisi ?? "YOK"}<br>
             📦 Model Portföy: ${stock.ModelPortfoy ?? "YOK"}<br>
             🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"}(${stock.PotansiyelGetiri?.toFixed(2) ?? "NA"}%)<br>
+
             <div style="margin-top:6px; color:#94a3b8;">
                 📌 ${stock.yorum ?? ""}
             </div>
+
             <br>
+
             <div class="score-row">
                 <div class="big ${color}">
                     Score: ${score.toFixed(2)}
@@ -324,6 +330,7 @@ function search() {
                     ${getSignal(karar)}
                 </div>
             </div>
+
             <div class="bar-container">
                 <div class="bar" style="width:${percent}%"></div>
             </div>
@@ -360,8 +367,11 @@ function showTop(n) {
 
     sorted.forEach(s => {
 
-        let percent = normalize(s.Score || 0);
+        let percent = normalize(Math.min(s.Score || 0, 1));
         let cap = s.SmallCap ? "⚠️" : "";
+
+        // ✅ BURAYA ALDIK
+        let istikrar = 1 - (s.volatilite || 0);
 
         html += `
             <div class="list-item">
@@ -383,7 +393,6 @@ function showTop(n) {
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
-                let istikrar = 1 - (s.volatilite || 0);
 
                 📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% 
                 (${istikrar > 0.7 ? "yüksek" : istikrar > 0.4 ? "orta" : "düşük"})<br>
