@@ -281,40 +281,61 @@ function search() {
         return;
     }
 
+    // ------------------ CORE ------------------
     let score = stock.Score || 0;
     let karar = stock.karar || "NÖTR";
     
-    let percent = normalize(score);
+    let percent = normalize(Math.min(score, 1));
     let color = getColor(karar);
 
     let cap = stock.SmallCap ? "⚠️ Düşük Sermaye<br>" : "";
 
-    // ✅ BURAYA ALDIK
+    // ------------------ KAR ISTIKRARI ------------------
     let istikrar = 1 - (stock.volatilite || 0);
 
+    // ------------------ KARLILIK (GUARDLI) ------------------
+    let margin = stock.Net_Margin || 0;
+
+    // extreme fix (çok kritik)
+    margin = Math.max(-1, Math.min(1, margin));
+
+    let marginLabel =
+        margin > 0.20 ? "çok yüksek" :
+        margin > 0.10 ? "yüksek" :
+        margin > 0.05 ? "iyi" :
+        margin > 0 ? "zayıf" :
+        "negatif";
+
+    // ------------------ ISTIKRAR LABEL ------------------
+    let istikrarLabel =
+        istikrar > 0.7 ? "yüksek" :
+        istikrar > 0.4 ? "orta" :
+        "düşük";
+
+    // ------------------ RENDER ------------------
     document.getElementById("result").innerHTML = `
         <div class="card">
 
             <div class="big">#${stock.Super_Rank ?? "-"} ${stock.Kod}</div>
 
-            🏭 Sektör: ${stock.Sektor ?? "NA"}<br>
+            🏭 Sektör: ${stock.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
             💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-            📊 Karlılık: ${((stock.Net_Margin || 0) * 100).toFixed(1)}%<br>
-            📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
+            📊 Karlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})<br>
 
-            📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% 
-            (${istikrar > 0.7 ? "yüksek" : istikrar > 0.4 ? "orta" : "düşük"})<br>
+            📅 Bilanço tarihi: ${stock.Bilanco_Tarih || "YOK"}<br>
 
-            📈 Trend: ${stock.trend}/3<br>
+            📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% (${istikrarLabel})<br>
+
+            📈 Trend: ${stock.trend ?? 0}/3<br>
 
             ${cap}
 
-            👨‍💼 Analist: ${stock.AnalistSayisi ?? "YOK"}<br>
-            📦 Model Portföy: ${stock.ModelPortfoy ?? "YOK"}<br>
-            🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"}(${stock.PotansiyelGetiri?.toFixed(2) ?? "NA"}%)<br>
+            👨‍💼 Analist: ${stock.AnalistSayisi || 0}<br>
+            📦 Model Portföy: ${stock.ModelPortfoy || 0}<br>
+            🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"} (${Number(stock.PotansiyelGetiri || 0).toFixed(2)}%)<br>
 
             <div style="margin-top:6px; color:#94a3b8;">
                 📌 ${stock.yorum ?? ""}
@@ -351,7 +372,6 @@ function search() {
         </div>
     `;
 }
-
 /* top list */
 function showTop(n) {
 
