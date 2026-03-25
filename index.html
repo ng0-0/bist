@@ -299,7 +299,7 @@ function search() {
             💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-            📊 Karlılık: ${(stock.Net_Margin*100)?.toFixed(1) ?? "NA"}%<br>
+            📊 Karlılık: ${(stock.Net_Margin)?.toFixed(1) ?? "NA"}%<br>
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
             📉 Volatilite: ${stock.volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
             📈 Trend: ${stock.trend}/3<br>
@@ -310,7 +310,7 @@ function search() {
             📦 Model Portföy: ${stock.ModelPortfoy ?? "YOK"}<br>
             🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"}(${stock.PotansiyelGetiri?.toFixed(2) ?? "NA"}%)<br>
             <div style="margin-top:6px; color:#94a3b8;">
-                📌 ${s.yorum ?? ""}
+                📌 ${stock.yorum ?? ""}
             </div>
             <br>
             <div class="score-row">
@@ -376,7 +376,7 @@ function showTop(n) {
 
                 🏭 ${s.Sektor ?? "NA"}<br>
 
-                💰 FK: ${s.fs?.toFixed(2) ?? "NA"} | 
+                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
@@ -424,26 +424,35 @@ function secHisse(kod) {
     }, 100);
 }
 function smartScore(x) {
-    let a = Number(x.AnalistSayisi) || 0;
+    let a = stock.AnalistSayisi || 0;
     let m = Number(x.ModelPortfoy) || 0;
     let g = Number(x.PotansiyelGetiri) || 0;
 
     return Math.log1p(a) * Math.log1p(m) * (1 + g/100);
 }
 
+function smartScore(x) {
+    let a = Number(x.AnalistSayisi) || 0;
+    let m = Number(x.ModelPortfoy) || 0;
+    let g = Number(x.PotansiyelGetiri) || 0;
+
+    return Math.log1p(a) * Math.log1p(m) * (1 + g / 100);
+}
+
 function showByAnalyst() {
 
     let sorted = [...data]
         .filter(x => x.AnalistSayisi || x.ModelPortfoy || x.PotansiyelGetiri)
-        .sort((a,b)=> smartScore(b) - smartScore(a))
-        .slice(0,50);
+        .sort((a, b) => smartScore(b) - smartScore(a))
+        .slice(0, 50);
 
     let html = "<h3>🧠 Smart Para (Analist + Model + Getiri)</h3>";
 
     sorted.forEach(s => {
 
-        let percent = normalize(s.Score || 0);
+        let percent = normalize(Math.min(s.Score || 0, 1));
         let cap = s.SmallCap ? "⚠️" : "";
+        let score = s.Score || 0;
 
         html += `
             <div class="list-item">
@@ -459,8 +468,8 @@ function showByAnalyst() {
                 ${cap}
                 </b><br>
 
-                👨‍💼 ${s.AnalistSayisi ?? 0} | 
-                📦 ${s.ModelPortfoy ?? 0} | 
+                👨‍💼 ${s.AnalistSayisi || 0} | 
+                📦 ${s.ModelPortfoy || 0} | 
                 🎯 ${Number(s.PotansiyelGetiri || 0).toFixed(1)}%<br>
 
                 🧠 Skor: ${score.toFixed(2)}<br>
