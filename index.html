@@ -424,14 +424,6 @@ function secHisse(kod) {
     }, 100);
 }
 function smartScore(x) {
-    let a = stock.AnalistSayisi || 0;
-    let m = Number(x.ModelPortfoy) || 0;
-    let g = Number(x.PotansiyelGetiri) || 0;
-
-    return Math.log1p(a) * Math.log1p(m) * (1 + g/100);
-}
-
-function smartScore(x) {
     let a = Number(x.AnalistSayisi) || 0;
     let m = Number(x.ModelPortfoy) || 0;
     let g = Number(x.PotansiyelGetiri) || 0;
