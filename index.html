@@ -283,12 +283,22 @@ function search() {
 
     // ------------------ CORE ------------------
     let score = stock.Score || 0;
+    let scoreClamped = Math.min(score, 1);
+    let scorePct = scoreClamped * 100;
+
     let karar = stock.karar || "NÖTR";
-    
-    let percent = normalize(Math.min(score, 1));
+    let percent = scorePct;
     let color = getColor(karar);
 
     let cap = stock.SmallCap ? "⚠️ Düşük Sermaye<br>" : "";
+
+    // ------------------ SCORE LABEL ------------------
+    let scoreLabel =
+        scoreClamped > 0.80 ? "elite" :
+        scoreClamped > 0.70 ? "güçlü" :
+        scoreClamped > 0.60 ? "iyi" :
+        scoreClamped > 0.45 ? "orta" :
+        "zayıf";
 
     // ------------------ KAR ISTIKRARI ------------------
     let istikrar = 1 - (stock.volatilite || 0);
@@ -298,10 +308,8 @@ function search() {
         istikrar > 0.4 ? "orta" :
         "düşük";
 
-    // ------------------ KARLILIK (GUARDLI) ------------------
+    // ------------------ KARLILIK ------------------
     let margin = stock.Net_Margin || 0;
-
-    // extreme fix
     margin = Math.max(-1, Math.min(1, margin));
 
     let marginLabel =
@@ -311,13 +319,13 @@ function search() {
         margin > 0 ? "zayıf" :
         "negatif";
 
-    // ------------------ SEKTÖREL KARLILIK ------------------
+    // ------------------ SEKTÖREL ------------------
     let marginRel = stock.margin_rel || 1;
 
     let marginRelLabel =
-        marginRel > 1.5 ? "sektöre göre çok yüksek" :
-        marginRel > 1.1 ? "sektöre göre yüksek" :
-        marginRel > 0.9 ? "sektör ortalaması" :
+        marginRel > 1.5 ? "sektöre göre çok iyi" :
+        marginRel > 1.1 ? "sektöre göre daha yüksek" :
+        marginRel > 0.9 ? "sektör ortalamasında" :
         marginRel > 0.7 ? "sektöre göre düşük" :
         "sektöre göre zayıf";
 
@@ -355,7 +363,7 @@ function search() {
 
             <div class="score-row">
                 <div class="big ${color}">
-                    Score: ${score.toFixed(2)}
+                    Score: ${scorePct.toFixed(0)} (${scoreLabel})
                 </div>
                 <div class="signal ${color}-bg">
                     ${getSignal(karar)}
@@ -397,11 +405,49 @@ function showTop(n) {
 
     sorted.forEach(s => {
 
-        let percent = normalize(Math.min(s.Score || 0, 1));
+        // ------------------ SCORE ------------------
+        let score = s.Score || 0;
+        let scoreClamped = Math.min(score, 1);
+        let scorePct = scoreClamped * 100;
+        let percent = scorePct;
+
+        let scoreLabel =
+            scoreClamped > 0.80 ? "elite" :
+            scoreClamped > 0.70 ? "güçlü" :
+            scoreClamped > 0.60 ? "iyi" :
+            scoreClamped > 0.45 ? "orta" :
+            "zayıf";
+
         let cap = s.SmallCap ? "⚠️" : "";
 
-        // ✅ BURAYA ALDIK
+        // ------------------ ISTIKRAR ------------------
         let istikrar = 1 - (s.volatilite || 0);
+
+        let istikrarLabel =
+            istikrar > 0.7 ? "yüksek" :
+            istikrar > 0.4 ? "orta" :
+            "düşük";
+
+        // ------------------ KARLILIK ------------------
+        let margin = s.Net_Margin || 0;
+        margin = Math.max(-1, Math.min(1, margin));
+
+        let marginLabel =
+            margin > 0.20 ? "çok yüksek" :
+            margin > 0.10 ? "yüksek" :
+            margin > 0.05 ? "iyi" :
+            margin > 0 ? "zayıf" :
+            "negatif";
+
+        // ------------------ SEKTÖREL ------------------
+        let marginRel = s.margin_rel || 1;
+
+        let marginRelLabel =
+            marginRel > 1.5 ? "sektöre göre çok iyi" :
+            marginRel > 1.1 ? "sektöre göre daha yüksek" :
+            marginRel > 0.9 ? "sektör ortalamasında" :
+            marginRel > 0.7 ? "sektöre göre düşük" :
+            "sektöre göre zayıf";
 
         html += `
             <div class="list-item">
@@ -417,21 +463,21 @@ function showTop(n) {
                 ${cap}
                 </b><br>
 
-                🏭 ${s.Sektor ?? "NA"}<br>
+                🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
                 💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-                📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
+                📊 ${(margin * 100).toFixed(1)}% 
+                (${marginLabel} • ${marginRelLabel})<br>
 
-                📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% 
-                (${istikrar > 0.7 ? "yüksek" : istikrar > 0.4 ? "orta" : "düşük"})<br>
+                📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% (${istikrarLabel})<br>
+
+                🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
                 📌 ${s.yorum ?? ""}
                 </div>
-                
-                ${cap}
                 
                 <div class="bar-container">
                     <div class="bar" style="width:${percent}%"></div>
@@ -440,10 +486,10 @@ function showTop(n) {
                 <button onclick="toggleDetail('${s.Kod}')">Çeyreklik Kârlar</button>
 
                 <div id="d-${s.Kod}" style="display:none; margin-top:6px;">
-                Q1: ${s.NetKar_Q1?.toFixed(2) ?? "-"} MTL<br>
-                Q2: ${s.NetKar_Q2?.toFixed(2) ?? "-"} MTL<br>
-                Q3: ${s.NetKar_Q3?.toFixed(2) ?? "-"} MTL<br>
-                Q4: ${s.NetKar_Q4?.toFixed(2) ?? "-"} MTL
+                    Q1: ${s.NetKar_Q1?.toFixed(2) ?? "-"} MTL<br>
+                    Q2: ${s.NetKar_Q2?.toFixed(2) ?? "-"} MTL<br>
+                    Q3: ${s.NetKar_Q3?.toFixed(2) ?? "-"} MTL<br>
+                    Q4: ${s.NetKar_Q4?.toFixed(2) ?? "-"} MTL
                 </div>
 
             </div>
