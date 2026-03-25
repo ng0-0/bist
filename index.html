@@ -293,10 +293,15 @@ function search() {
     // ------------------ KAR ISTIKRARI ------------------
     let istikrar = 1 - (stock.volatilite || 0);
 
+    let istikrarLabel =
+        istikrar > 0.7 ? "yüksek" :
+        istikrar > 0.4 ? "orta" :
+        "düşük";
+
     // ------------------ KARLILIK (GUARDLI) ------------------
     let margin = stock.Net_Margin || 0;
 
-    // extreme fix (çok kritik)
+    // extreme fix
     margin = Math.max(-1, Math.min(1, margin));
 
     let marginLabel =
@@ -306,11 +311,15 @@ function search() {
         margin > 0 ? "zayıf" :
         "negatif";
 
-    // ------------------ ISTIKRAR LABEL ------------------
-    let istikrarLabel =
-        istikrar > 0.7 ? "yüksek" :
-        istikrar > 0.4 ? "orta" :
-        "düşük";
+    // ------------------ SEKTÖREL KARLILIK ------------------
+    let marginRel = stock.margin_rel || 1;
+
+    let marginRelLabel =
+        marginRel > 1.5 ? "sektöre göre çok yüksek" :
+        marginRel > 1.1 ? "sektöre göre yüksek" :
+        marginRel > 0.9 ? "sektör ortalaması" :
+        marginRel > 0.7 ? "sektöre göre düşük" :
+        "sektöre göre zayıf";
 
     // ------------------ RENDER ------------------
     document.getElementById("result").innerHTML = `
@@ -323,7 +332,8 @@ function search() {
             💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-            📊 Karlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})<br>
+            📊 Karlılık: ${(margin * 100).toFixed(1)}% 
+            (${marginLabel} • ${marginRelLabel})<br>
 
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih || "YOK"}<br>
 
