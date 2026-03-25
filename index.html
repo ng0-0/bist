@@ -301,7 +301,10 @@ function search() {
 
             📊 Karlılık: ${(stock.Net_Margin)?.toFixed(1) ?? "NA"}%<br>
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
-            📉 Volatilite: ${stock.volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
+            let istikrar = 1 - (s.volatilite || 0);
+
+            📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% 
+            (${istikrar > 0.7 ? "yüksek" : istikrar > 0.4 ? "orta" : "düşük"})<br>
             📈 Trend: ${stock.trend}/3<br>
 
             ${cap}
@@ -380,7 +383,10 @@ function showTop(n) {
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 📊 ${(s.Net_Margin*100)?.toFixed(1) ?? "NA"}% | 
-                📉 Volatilite: ${s.volatilite?.toFixed(2) ?? "NA"}% (Günlük Oynaklık)<br>
+                let istikrar = 1 - (s.volatilite || 0);
+
+                📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% 
+                (${istikrar > 0.7 ? "yüksek" : istikrar > 0.4 ? "orta" : "düşük"})<br>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
                 📌 ${s.yorum ?? ""}
