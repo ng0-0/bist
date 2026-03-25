@@ -302,7 +302,7 @@ function search() {
             💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-            📊 Karlılık: ${(stock.Net_Margin)?.toFixed(1) ?? "NA"}%<br>
+            📊 Karlılık: ${((stock.Net_Margin || 0) * 100).toFixed(1)}%<br>
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih ?? "YOK"}<br>
 
             📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% 
