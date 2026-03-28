@@ -335,14 +335,6 @@ function search() {
     
         marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
     }
-
-    let marginLabel =
-        margin > 0.20 ? "çok yüksek" :
-        margin > 0.10 ? "yüksek" :
-        margin > 0.05 ? "iyi" :
-        margin > 0 ? "zayıf" :
-        "negatif";
-
     // ------------------ SEKTÖREL ------------------
     let marginRel = stock.margin_rel || 1;
 
@@ -474,13 +466,6 @@ function showTop(n) {
         
             marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
         }
-        let marginLabel =
-            margin > 0.20 ? "çok yüksek" :
-            margin > 0.10 ? "yüksek" :
-            margin > 0.05 ? "iyi" :
-            margin > 0 ? "zayıf" :
-            "negatif";
-
         // ------------------ SEKTÖREL ------------------
         let marginRel = s.margin_rel || 1;
 
