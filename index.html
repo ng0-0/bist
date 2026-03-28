@@ -307,7 +307,14 @@ function search() {
         istikrar > 0.7 ? "yüksek" :
         istikrar > 0.4 ? "orta" :
         "düşük";
-
+    let growth = stock.ceyreklik_buyume || 0;
+    
+    let growthLabel =
+        growth > 0.3 ? "çok güçlü" :
+        growth > 0.15 ? "güçlü" :
+        growth > 0.05 ? "orta" :
+        growth > 0 ? "zayıf" :
+        "negatif";
     // ------------------ KARLILIK ------------------
     let margin = stock.Net_Margin || 0;
     margin = Math.max(-1, Math.min(1, margin));
@@ -340,8 +347,9 @@ function search() {
             💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-            📊 Karlılık: ${(margin * 100).toFixed(1)}% 
-            (${marginRelLabel})<br>
+            📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})<br>
+            📈 Büyüme: ${(growth * 100).toFixed(1)}% (${growthLabel})<br>
+            📊 Sektöre Göre: ${marginRelLabel}<br>
 
             📅 Bilanço tarihi: ${stock.Bilanco_Tarih || "YOK"}<br>
 
@@ -468,8 +476,8 @@ function showTop(n) {
                 💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-                📊 Karlılık: ${(margin * 100).toFixed(1)}% 
-                (${marginRelLabel})<br>
+                📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})<br>
+                📊 Sektöre Göre: ${marginRelLabel}<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
