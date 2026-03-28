@@ -316,7 +316,24 @@ function search() {
         growth > 0 ? "zayıf" :
         "negatif";
     // ------------------ KARLILIK ------------------
-    let margin = stock.Net_Margin || 0;
+    let isBank = stock.Sektor?.includes("Bank");
+    
+    let marginText = "";
+    
+    if (isBank) {
+        marginText = "📊 Kârlılık: Bankalar için farklı hesaplanır";
+    } else {
+        let margin = stock.Net_Margin || 0;
+    
+        let marginLabel =
+            margin > 0.20 ? "çok yüksek" :
+            margin > 0.10 ? "yüksek" :
+            margin > 0.05 ? "iyi" :
+            margin > 0 ? "zayıf" :
+            "negatif";
+    
+        marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
+    }
     margin = Math.max(-1, Math.min(1, margin));
 
     let marginLabel =
@@ -348,6 +365,7 @@ function search() {
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
             📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})<br>
+            
             📈 Büyüme: ${(growth * 100).toFixed(1)}% (${growthLabel})<br>
             📊 Sektöre Göre: ${marginRelLabel}<br>
 
