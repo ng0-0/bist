@@ -324,6 +324,7 @@ function search() {
         marginText = "📊 Kârlılık: Bankalar için farklı hesaplanır";
     } else {
         let margin = stock.Net_Margin || 0;
+        margin = Math.max(-1, Math.min(1, margin));
     
         let marginLabel =
             margin > 0.20 ? "çok yüksek" :
@@ -334,7 +335,6 @@ function search() {
     
         marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
     }
-    margin = Math.max(-1, Math.min(1, margin));
 
     let marginLabel =
         margin > 0.20 ? "çok yüksek" :
@@ -364,7 +364,7 @@ function search() {
             💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-            📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})<br>
+            ${marginText}<br>
             
             📈 Büyüme: ${(growth * 100).toFixed(1)}% (${growthLabel})<br>
             📊 Sektöre Göre: ${marginRelLabel}<br>
@@ -455,9 +455,25 @@ function showTop(n) {
             "düşük";
 
         // ------------------ KARLILIK ------------------
-        let margin = s.Net_Margin || 0;
-        margin = Math.max(-1, Math.min(1, margin));
-
+        let isBank = s.Sektor?.includes("Bank");
+        
+        let marginText = "";
+        
+        if (isBank) {
+            marginText = "📊 Kârlılık: banka modeli";
+        } else {
+            let margin = s.Net_Margin || 0;
+            margin = Math.max(-1, Math.min(1, margin));
+        
+            let marginLabel =
+                margin > 0.20 ? "çok yüksek" :
+                margin > 0.10 ? "yüksek" :
+                margin > 0.05 ? "iyi" :
+                margin > 0 ? "zayıf" :
+                "negatif";
+        
+            marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
+        }
         let marginLabel =
             margin > 0.20 ? "çok yüksek" :
             margin > 0.10 ? "yüksek" :
@@ -494,7 +510,7 @@ function showTop(n) {
                 💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
-                📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})<br>
+                ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
                 
