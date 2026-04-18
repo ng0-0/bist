@@ -336,6 +336,12 @@ async function search() {
     }
 
     let livePrice = livePrices[stock.Kod];
+    console.log({
+      price: livePrice,
+      sermaye: stock.Sermaye,
+      netKar: stock.NetKar_TTM,
+      equity: stock.Equity
+    });
     if (!stock) {
         document.getElementById("result").innerHTML = "❌ Hisse bulunamadı";
         return;
