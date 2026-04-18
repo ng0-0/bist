@@ -325,7 +325,6 @@ async function loadPrices() {
 }
 
 /* search */
-
 async function search() {
 
     let s = document.getElementById("symbol").value.toUpperCase().trim();
@@ -337,27 +336,16 @@ async function search() {
     }
 
     let livePrice = livePrices[stock.Kod];
-
+    if (!stock) {
+        document.getElementById("result").innerHTML = "❌ Hisse bulunamadı";
+        return;
+    }
     let pot = null;
+    
     if (livePrice && stock.HedefFiyat) {
         pot = ((stock.HedefFiyat / livePrice) - 1) * 100;
     }
-
-    let fkLive = null;
-    let pdLive = null;
-
-    if (livePrice && stock.Sermaye && stock.NetKar_TTM) {
-        if (stock.Sektor?.includes("Bank")) {
-            fkLive = (livePrice * stock.Sermaye) / (stock.NetKar_TTM / 1e6);
-        } else {
-            fkLive = (livePrice * stock.Sermaye) / stock.NetKar_TTM;
-        }
-    }
-
-    if (livePrice && stock.Sermaye && stock.oz_sermaye) {
-        pdLive = (livePrice * stock.Sermaye) / stock.oz_sermaye;
-    }
-
+    // ------------------ CORE ------------------
     let score = stock.Score || 0;
     let scoreClamped = Math.min(score, 1);
     let scorePct = scoreClamped * 100;
@@ -368,28 +356,131 @@ async function search() {
 
     let cap = stock.SmallCap ? "⚠️ Düşük Sermaye<br>" : "";
 
+    // ------------------ SCORE LABEL ------------------
+    let scoreLabel =
+        scoreClamped > 0.80 ? "elite" :
+        scoreClamped > 0.70 ? "güçlü" :
+        scoreClamped > 0.60 ? "iyi" :
+        scoreClamped > 0.45 ? "orta" :
+        "zayıf";
+
+    // ------------------ KAR ISTIKRARI ------------------
+    let istikrar = 1 - (stock.volatilite || 0);
+    
+    let istikrarLabel =
+        istikrar > 0.7 ? "yüksek" :
+        istikrar > 0.4 ? "orta" :
+        "düşük";
+    let growth = stock.ceyreklik_buyume || 0;
+    
+    let growthLabel =
+        growth > 0.3 ? "çok güçlü" :
+        growth > 0.15 ? "güçlü" :
+        growth > 0.05 ? "orta" :
+        growth > 0 ? "zayıf" :
+        "negatif";
+    // ------------------ KARLILIK ------------------
+    let isBank = stock.Sektor?.includes("Bank");
+    
+    let marginText = "";
+    
+    if (isBank) {
+        marginText = "📊 Kârlılık: Bankalar için farklı hesaplanır";
+    } else {
+        let margin = stock.Net_Margin || 0;
+        margin = Math.max(-1, Math.min(1, margin));
+    
+        let marginLabel =
+            margin > 0.20 ? "çok yüksek" :
+            margin > 0.10 ? "yüksek" :
+            margin > 0.05 ? "iyi" :
+            margin > 0 ? "zayıf" :
+            "negatif";
+    
+        marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
+    }
+    // ------------------ SEKTÖREL ------------------
+    let marginRel = stock.margin_rel || 1;
+
+    let marginRelLabel =
+        marginRel > 1.5 ? "sektöre göre çok iyi" :
+        marginRel > 1.1 ? "sektöre göre daha yüksek" :
+        marginRel > 0.9 ? "sektör ortalamasında" :
+        marginRel > 0.7 ? "sektöre göre düşük" :
+        "sektöre göre zayıf";
+
+    // ------------------ RENDER ------------------
     document.getElementById("result").innerHTML = `
         <div class="card">
 
             <div class="big">#${stock.Super_Rank ?? "-"} ${stock.Kod}</div>
 
-            🏭 Sektör: ${stock.Sektor?.replace(/
-/g, " ") ?? "NA"}<br>
+            🏭 Sektör: ${stock.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-            💰 FK: ${fkLive ? fkLive.toFixed(2) : "NA"} 
-            (${stock.fk?.toFixed(2) ?? "-"}) | 
-            PD/DD: ${pdLive ? pdLive.toFixed(2) : "NA"} 
-            (${stock.PD_DD?.toFixed(2) ?? "-"})<br>
+            💰 FK: ${(livePrice && stock.Sermaye && stock.NetKar_TTM) ? 
+((stock.Sektor?.includes("Bank") ? 
+(livePrice * stock.Sermaye)/(stock.NetKar_TTM/1e6) : 
+(livePrice * stock.Sermaye)/stock.NetKar_TTM)).toFixed(2) : "NA"} 
+(${stock.fk?.toFixed(2) ?? "-"}) | 
+PD/DD: ${(livePrice && stock.Sermaye && stock.oz_sermaye) ? 
+((livePrice * stock.Sermaye)/stock.oz_sermaye).toFixed(2) : "NA"} 
+(${stock.PD_DD?.toFixed(2) ?? "-"})<br>
 
+            ${marginText}<br>
+            
+            📈 Büyüme: ${(growth * 100).toFixed(1)}% (${growthLabel})<br>
+            📊 Sektöre Göre: ${marginRelLabel}<br>
+
+            📅 Bilanço tarihi: ${stock.Bilanco_Tarih || "YOK"}<br>
+
+            📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% (${istikrarLabel})<br>
+
+            📈 Trend: ${stock.trend ?? 0}/3<br>
+
+            ${cap}
+
+            👨‍💼 Analist: ${stock.AnalistSayisi || 0}<br>
+            📦 Model Portföy: ${stock.ModelPortfoy || 0}<br>
             🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"} 
             (${pot ? pot.toFixed(2) + "%" : "NA"})<br>
             
             💵 Güncel Fiyat: ${livePrice ? livePrice.toFixed(2) : "NA"}<br>
 
+            <div style="margin-top:6px; color:#94a3b8;">
+                📌 ${stock.yorum ?? ""}
+            </div>
+
+            <br>
+
+            <div class="score-row">
+                <div class="big ${color}">
+                    Score: ${scorePct.toFixed(0)} (${scoreLabel})
+                </div>
+                <div class="signal ${color}-bg">
+                    ${getSignal(karar)}
+                </div>
+            </div>
+
+            <div class="bar-container">
+                <div class="bar" style="width:${percent}%"></div>
+            </div>
+
+            <br>
+
+            <button onclick="toggleDetail('${stock.Kod}')">Çeyreklik Kârlar</button>
+
+            <div id="d-${stock.Kod}" style="display:none; margin-top:10px;">
+                Q1: ${stock.NetKar_Q1?.toFixed(2) ?? "-"} MTL<br>
+                Q2: ${stock.NetKar_Q2?.toFixed(2) ?? "-"} MTL<br>
+                Q3: ${stock.NetKar_Q3?.toFixed(2) ?? "-"} MTL<br>
+                Q4: ${stock.NetKar_Q4?.toFixed(2) ?? "-"} MTL
+            </div>
+
+            <br>
+
         </div>
     `;
 }
-
 /* top list */
 function showTop(n) {
 
