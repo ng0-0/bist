@@ -437,10 +437,10 @@ async function search() {
 
             🏭 Sektör: ${stock.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-            💰 FK: ${fkLive ? fkLive.toFixed(2) : "NA"} 
+            💰 FK: ${fkLive !== null ? fkLive.toFixed(2) : "NA"} 
             (${stock.fk?.toFixed(2) ?? "-"}) | 
             
-            PD/DD: ${pdLive ? pdLive.toFixed(2) : "NA"} 
+            PD/DD: ${pdLive !== null ? pdLive.toFixed(2) : "NA"} 
             (${stock.PD_DD?.toFixed(2) ?? "-"})
 
             ${marginText}<br>
