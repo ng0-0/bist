@@ -212,7 +212,18 @@ function getColor(karar) {
     if (karar === "TUT" || karar === "NÖTR") return "orange";
     return "red";
 }
+async function getLivePrice(symbol) {
+    try {
+        let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS`);
+        let json = await res.json();
 
+        let price = json.chart.result[0].meta.regularMarketPrice;
+        return price;
+    } catch (e) {
+        console.error("price error", e);
+        return null;
+    }
+}
 function getSignal(karar) {
     switch(karar) {
         case "GÜÇLÜ AL": return "🔥 GÜÇLÜ AL";
@@ -271,16 +282,20 @@ document.getElementById("symbol").addEventListener("input", function() {
 });
 
 /* search */
-function search() {
+async function search() {
 
     let s = document.getElementById("symbol").value.toUpperCase().trim();
     let stock = data.find(x => x.Kod === s);
-
+    let livePrice = await getLivePrice(stock.Kod);
     if (!stock) {
         document.getElementById("result").innerHTML = "❌ Hisse bulunamadı";
         return;
     }
-
+    let pot = null;
+    
+    if (livePrice && stock.HedefFiyat) {
+        pot = ((stock.HedefFiyat / livePrice) - 1) * 100;
+    }
     // ------------------ CORE ------------------
     let score = stock.Score || 0;
     let scoreClamped = Math.min(score, 1);
@@ -302,7 +317,7 @@ function search() {
 
     // ------------------ KAR ISTIKRARI ------------------
     let istikrar = 1 - (stock.volatilite || 0);
-
+    
     let istikrarLabel =
         istikrar > 0.7 ? "yüksek" :
         istikrar > 0.4 ? "orta" :
@@ -371,7 +386,10 @@ function search() {
 
             👨‍💼 Analist: ${stock.AnalistSayisi || 0}<br>
             📦 Model Portföy: ${stock.ModelPortfoy || 0}<br>
-            🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"} (${Number(stock.PotansiyelGetiri || 0).toFixed(2)}%)<br>
+            🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"} 
+            (${pot ? pot.toFixed(2) + "%" : "NA"})<br>
+            
+            💵 Güncel Fiyat: ${livePrice ? livePrice.toFixed(2) : "NA"}<br>
 
             <div style="margin-top:6px; color:#94a3b8;">
                 📌 ${stock.yorum ?? ""}
