@@ -418,13 +418,12 @@ async function search() {
             🏭 Sektör: ${stock.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
             💰 FK: ${(livePrice && stock.Sermaye && stock.NetKar_TTM) ? 
-((stock.Sektor?.includes("Bank") ? 
-(livePrice * stock.Sermaye)/(stock.NetKar_TTM/1e6) : 
-(livePrice * stock.Sermaye)/stock.NetKar_TTM)).toFixed(2) : "NA"} 
-(${stock.fk?.toFixed(2) ?? "-"}) | 
-PD/DD: ${(livePrice && stock.Sermaye && stock.Equity) ? 
-((livePrice * stock.Sermaye)/stock.Equity).toFixed(2) : "NA"} 
-(${stock.PD_DD?.toFixed(2) ?? "-"})<br>
+            ((livePrice * stock.Sermaye)/(stock.NetKar_TTM * 1e6)).toFixed(2) : "NA"} 
+            (${stock.fk?.toFixed(2) ?? "-"}) | 
+            
+            PD/DD: ${(livePrice && stock.Sermaye && stock.Equity) ? 
+            ((livePrice * stock.Sermaye)/(stock.Equity * 1e6)).toFixed(2) : "NA"} 
+            (${stock.PD_DD?.toFixed(2) ?? "-"})
 
             ${marginText}<br>
             
