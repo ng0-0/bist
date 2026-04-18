@@ -214,11 +214,29 @@ function getColor(karar) {
 }
 async function getLivePrice(symbol) {
     try {
+        // 1️⃣ Yahoo
         let res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}.IS`);
         let json = await res.json();
 
-        let price = json.chart.result[0].meta.regularMarketPrice;
-        return price;
+        let price = json?.chart?.result?.[0]?.meta?.regularMarketPrice;
+
+        if (price) return price;
+
+        // 2️⃣ fallback (fintables radar)
+        let res2 = await fetch("https://api.fintables.com/radar/", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                filters: {type:"group",operator:"and",children:[]},
+                columns: [{"attribute_id":"close"}]
+            })
+        });
+
+        let json2 = await res2.json();
+
+        let found = json2.data.find(x => x.code === symbol);
+        return found?.close || null;
+
     } catch (e) {
         console.error("price error", e);
         return null;
