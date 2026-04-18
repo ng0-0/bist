@@ -352,11 +352,11 @@ async function search() {
     let fkLive = null;
     let pdLive = null;
     
-    if (!isNaN(sermaye) && !isNaN(netKar) && livePrice) {
+    if (livePrice && sermaye > 0 && netKar > 0) {
         fkLive = (livePrice * sermaye) / (netKar * 1e6);
     }
     
-    if (!isNaN(sermaye) && !isNaN(equity) && livePrice) {
+    if (livePrice && sermaye > 0 && equity > 0) {
         pdLive = (livePrice * sermaye) / (equity * 1e6);
     }
     // ------------------ CORE ------------------
