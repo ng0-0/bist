@@ -345,20 +345,6 @@ async function search() {
     if (livePrice && stock.HedefFiyat) {
         pot = ((stock.HedefFiyat / livePrice) - 1) * 100;
     }
-    let sermaye = Number(stock.Sermaye);
-    let netKar = Number(stock.NetKar_TTM);
-    let equity = Number(stock.Equity);
-    
-    let fkLive = null;
-    let pdLive = null;
-    
-    if (!isNaN(sermaye) && !isNaN(netKar) && livePrice) {
-        fkLive = (livePrice * sermaye) / (netKar * 1e6);
-    }
-    
-    if (!isNaN(sermaye) && !isNaN(equity) && livePrice) {
-        pdLive = (livePrice * sermaye) / (equity * 1e6);
-    }
     // ------------------ CORE ------------------
     let score = stock.Score || 0;
     let scoreClamped = Math.min(score, 1);
@@ -431,10 +417,12 @@ async function search() {
 
             🏭 Sektör: ${stock.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-            💰 FK: ${fkLive ? fkLive.toFixed(2) : "NA"} 
+            💰 FK: ${(livePrice && stock.Sermaye && stock.NetKar_TTM) ? 
+            ((livePrice * stock.Sermaye)/(stock.NetKar_TTM * 1e6)).toFixed(2) : "NA"} 
             (${stock.fk?.toFixed(2) ?? "-"}) | 
             
-            PD/DD: ${pdLive ? pdLive.toFixed(2) : "NA"} 
+            PD/DD: ${(livePrice && stock.Sermaye && stock.Equity) ? 
+            ((livePrice * stock.Sermaye)/(stock.Equity * 1e6)).toFixed(2) : "NA"} 
             (${stock.PD_DD?.toFixed(2) ?? "-"})
 
             ${marginText}<br>
@@ -576,11 +564,8 @@ function showTop(n) {
 
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-                💰 FK: ${fkLive ? fkLive.toFixed(2) : "NA"} 
-                (${stock.fk?.toFixed(2) ?? "-"}) | 
-                
-                PD/DD: ${pdLive ? pdLive.toFixed(2) : "NA"} 
-                (${stock.PD_DD?.toFixed(2) ?? "-"})<br>
+                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | 
+                PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
@@ -693,11 +678,8 @@ function showTooltip(e, kod) {
     t.innerHTML = `
         <b>${kod}</b><br>
         Karar: ${karar}<br>
-        💰 FK: ${fkLive ? fkLive.toFixed(2) : "NA"} 
-        (${stock.fk?.toFixed(2) ?? "-"}) | 
-        
-        PD/DD: ${pdLive ? pdLive.toFixed(2) : "NA"} 
-        (${stock.PD_DD?.toFixed(2) ?? "-"})<br>
+        FK: ${h.fs?.toFixed(2) ?? "-"}<br>
+        PD/DD: ${h.PD_DD?.toFixed(2) ?? "-"}<br>
         ${karlilikText}<br>
         Skor: ${score.toFixed(2)}
     
