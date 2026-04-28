@@ -183,27 +183,37 @@ button {
 let data = [];
 let livePrices = {};
 
-fetch("https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e")
-.then(res => {
-    console.log("STATUS:", res.status);
-    return res.text();  // 🔥 JSON değil text al
-})
-.then(text => {
-    console.log("RAW:", text.slice(0, 100));  // ilk 100 char
+async function loadData() {
+    const sources = [
+        "./data.json",
+        "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e"
+    ];
 
-    try {
-        const json = JSON.parse(text);
-        console.log("DATA LENGTH:", json.length);
-        data = json;
-        showTop(10);
-        loadPrices();
-    } catch (e) {
-        console.error("NOT JSON:", e);
+    for (const source of sources) {
+        try {
+            const res = await fetch(source, { cache: "no-store" });
+            if (!res.ok) continue;
+
+            const text = await res.text();
+            const json = JSON.parse(text);
+
+            if (Array.isArray(json) && json.length) {
+                console.log("DATA SOURCE:", source);
+                console.log("DATA LENGTH:", json.length);
+                data = json;
+                showTop(10);
+                loadPrices();
+                return;
+            }
+        } catch (e) {
+            console.error("LOAD ERROR:", source, e);
+        }
     }
-})
-.catch(err => {
-    console.error("FETCH ERROR:", err);
-});
+
+    console.error("No valid data source found");
+}
+
+loadData();
 /* helpers */
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
