@@ -182,6 +182,7 @@ button {
 <script>
 
 let data = [];
+let livePrices = {};
 
 async function loadData() {
     const sources = [
@@ -202,6 +203,7 @@ async function loadData() {
                 console.log("DATA LENGTH:", json.length);
                 data = json;
                 showTop(10);
+                loadPrices();
                 return;
             }
         } catch (e) {
@@ -310,16 +312,41 @@ document.getElementById("symbol").addEventListener("input", function() {
     });
 });
 
+
+async function loadPrices() {
+    try {
+        let res = await fetch("https://api.fintables.com/radar/", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                filters: {type:"group",operator:"and",children:[]},
+                columns: [{"attribute_id":"close"}]
+            })
+        });
+
+        let json = await res.json();
+
+        json.data.forEach(x => {
+            livePrices[x.code] = x.close;
+        });
+
+    } catch (e) {
+        console.error("price error", e);
+    }
+}
+
 /* search */
 async function search() {
 
-    let s = document.getElementById("symbol").value.toUpperCase().trim();
-    let stock = data.find(x => x.Kod === s);
+    let s = document.getElementById("symbol").value.toUpperCase().replace(/\s+/g, "").trim();
+    let stock = data.find(x => String(x.Kod || "").toUpperCase().replace(/\s+/g, "").trim() === s);
+
     if (!stock) {
         document.getElementById("result").innerHTML = "❌ Hisse bulunamadı";
         return;
     }
-    let livePrice = await getLivePrice(stock.Kod);
+
+    let livePrice = livePrices[stock.Kod];
     let pot = null;
     
     if (livePrice && stock.HedefFiyat) {
@@ -363,18 +390,9 @@ async function search() {
     let isBank = stock.Sektor?.includes("Bank");
     
     let marginText = "";
-    let valuationText = `💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}`;
     
     if (isBank) {
-        let roe = Number(stock.ROE);
-        let roeLabel =
-            roe > 0.20 ? "çok güçlü" :
-            roe > 0.15 ? "güçlü" :
-            roe > 0.10 ? "iyi" :
-            roe > 0 ? "zayıf" :
-            "negatif";
-
-        marginText = `📊 Özsermaye Karlılığı (ROE): ${(roe * 100).toFixed(1)}% (${roeLabel})`;
+        marginText = "📊 Kârlılık: Bankalar için farklı hesaplanır";
     } else {
         let margin = stock.Net_Margin || 0;
         margin = Math.max(-1, Math.min(1, margin));
@@ -406,7 +424,8 @@ async function search() {
 
             🏭 Sektör: ${stock.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-            ${valuationText}<br>
+            💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
+            PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
             ${marginText}<br>
             
@@ -505,18 +524,9 @@ function showTop(n) {
         let isBank = s.Sektor?.includes("Bank");
         
         let marginText = "";
-        let valuationText = `💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}`;
         
         if (isBank) {
-            let roe = Number(s.ROE);
-            let roeLabel =
-                roe > 0.20 ? "çok güçlü" :
-                roe > 0.15 ? "güçlü" :
-                roe > 0.10 ? "iyi" :
-                roe > 0 ? "zayıf" :
-                "negatif";
-
-            marginText = `📊 ROE: ${(roe * 100).toFixed(1)}% (${roeLabel})`;
+            marginText = "📊 Kârlılık: banka modeli";
         } else {
             let margin = s.Net_Margin || 0;
             margin = Math.max(-1, Math.min(1, margin));
@@ -556,7 +566,8 @@ function showTop(n) {
 
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-                ${valuationText}<br>
+                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | 
+                PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
@@ -727,10 +738,6 @@ function showTooltip(e, kod) {
 
     let score = h.Score || 0;
     let karar = h.karar || "NÖTR";
-    let isBank = h.Sektor?.includes("Bank");
-    let profitabilityText = isBank
-        ? `ROE: ${(Number(h.ROE || 0) * 100).toFixed(1)}%`
-        : `Net Marj: ${(Number(h.Net_Margin || 0) * 100).toFixed(1)}%`;
     let renk = score > 0.75 ? "#22c55e" :
                 score > 0.60 ? "#4ade80" :
                 score > 0.45 ? "#facc15" : "#ef4444";
@@ -740,7 +747,7 @@ function showTooltip(e, kod) {
         Karar: ${karar}<br>
         FK: ${h.fk?.toFixed(2) ?? "-"}<br>
         PD/DD: ${h.PD_DD?.toFixed(2) ?? "-"}<br>
-        ${profitabilityText}<br>
+        ${karlilikText}<br>
         Skor: ${score.toFixed(2)}
     
         <div style="margin-top:6px;height:6px;background:#334155;border-radius:4px;">
