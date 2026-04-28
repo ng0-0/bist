@@ -164,6 +164,7 @@ button {
     <button onclick="showTop(10)">Top 10</button>
     <button onclick="showTop(50)">Top 50</button>
     <button onclick="showTop(100)">Top 100</button>
+    <button onclick="showRecentBilancos(50)">Son Bilançolar</button>
     <button onclick="showBanks(20)">Bankalar</button>
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
 </div>
@@ -265,6 +266,44 @@ function getSignal(karar) {
         case "SAT": return "🔴 SAT";
         default: return "❓";
     }
+}
+
+function parseBilancoDate(raw) {
+    if (!raw) return null;
+
+    const text = String(raw).trim();
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    if (text === "Bugün" || text.toLowerCase() === "bugun") {
+        return new Date(now);
+    }
+
+    if (text === "Dün" || text.toLowerCase() === "dun") {
+        const d = new Date(now);
+        d.setDate(d.getDate() - 1);
+        return d;
+    }
+
+    const match = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})$/);
+    if (!match) return null;
+
+    const day = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const year = Number(match[3]);
+    const date = new Date(year, month, day);
+    date.setHours(0, 0, 0, 0);
+    return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function formatBilancoDate(raw) {
+    const date = parseBilancoDate(raw);
+    if (!date) return raw || "YOK";
+
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
 }
 
 function getMomentumLabel(m) {
@@ -432,7 +471,7 @@ async function search() {
             📈 Büyüme: ${(growth * 100).toFixed(1)}% (${growthLabel})<br>
             📊 Sektöre Göre: ${marginRelLabel}<br>
 
-            📅 Bilanço tarihi: ${stock.Bilanco_Tarih || "YOK"}<br>
+            📅 Bilanço tarihi: ${formatBilancoDate(stock.Bilanco_Tarih)}<br>
 
             📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% (${istikrarLabel})<br>
 
@@ -590,6 +629,58 @@ function showTop(n) {
                     Q4: ${s.NetKar_Q4?.toFixed(2) ?? "-"} MTL
                 </div>
 
+            </div>
+        `;
+    });
+
+    document.getElementById("toplist").innerHTML = html;
+}
+
+function showRecentBilancos(n) {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const threshold = new Date(now);
+    threshold.setDate(threshold.getDate() - 30);
+
+    let sorted = [...data]
+        .filter(x => parseBilancoDate(x.Bilanco_Tarih))
+        .map(x => ({ ...x, _bilancoDate: parseBilancoDate(x.Bilanco_Tarih) }))
+        .filter(x => x._bilancoDate >= threshold)
+        .sort((a, b) => b._bilancoDate - a._bilancoDate)
+        .slice(0, n);
+
+    let html = "<h3>📅 Son Bilançolar (30 Gün)</h3>";
+
+    sorted.forEach(s => {
+        let score = s.Score || 0;
+        let scoreClamped = Math.min(score, 1);
+        let scorePct = scoreClamped * 100;
+        let percent = scorePct;
+
+        html += `
+            <div class="list-item">
+                <b>
+                ${formatBilancoDate(s.Bilanco_Tarih)} 
+                <span class="hisse-link"
+                      onclick="secHisse('${s.Kod}')"
+                      onmouseenter="showTooltip(event, '${s.Kod}')"
+                      onmouseleave="hideTooltip()">
+                    ${s.Kod}
+                </span>
+                </b><br>
+
+                🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
+                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
+                🧠 Score: ${scorePct.toFixed(0)}<br>
+
+                <div style="margin-top:6px; color:#94a3b8;">
+                📌 ${s.yorum ?? ""}
+                </div>
+
+                <div class="bar-container">
+                    <div class="bar" style="width:${percent}%"></div>
+                </div>
             </div>
         `;
     });
