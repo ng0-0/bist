@@ -163,6 +163,7 @@ button {
 <div class="top-buttons">
     <button onclick="showTop(10)">Top 10</button>
     <button onclick="showTop(100)">Top 100</button>
+    <button onclick="showLargeCaps(50, 100)">Güçlü Büyükler</button>
     <button onclick="showRecentBilancos(50)">Son Bilançolar</button>
     <button onclick="showBanks(20)">Bankalar</button>
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
@@ -733,6 +734,82 @@ function showBanks(n) {
                 🏦 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
                 💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
                 📊 ROE: ${(roe * 100).toFixed(1)}% (${roeLabel})<br>
+                🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
+
+                <div style="margin-top:6px; color:#94a3b8;">
+                📌 ${s.yorum ?? ""}
+                </div>
+
+                <div class="bar-container">
+                    <div class="bar" style="width:${percent}%"></div>
+                </div>
+            </div>
+        `;
+    });
+
+    document.getElementById("toplist").innerHTML = html;
+}
+
+function formatMarketCap(value) {
+    const cap = Number(value);
+    if (!Number.isFinite(cap) || cap <= 0) return "NA";
+
+    if (cap >= 1000) {
+        return `${(cap / 1000).toFixed(1)} milyar TL`;
+    }
+
+    return `${cap.toFixed(0)} mn TL`;
+}
+
+function showLargeCaps(limit = 50, poolSize = 100) {
+    const largestPool = [...data]
+        .filter(x => Number.isFinite(Number(x.PiyasaDegeri)) && Number(x.PiyasaDegeri) > 0)
+        .sort((a, b) => Number(b.PiyasaDegeri) - Number(a.PiyasaDegeri))
+        .slice(0, poolSize);
+
+    const sorted = largestPool
+        .sort((a, b) => {
+            const rankA = Number.isFinite(Number(a.Super_Rank)) ? Number(a.Super_Rank) : 9999;
+            const rankB = Number.isFinite(Number(b.Super_Rank)) ? Number(b.Super_Rank) : 9999;
+
+            if (rankA !== rankB) return rankA - rankB;
+            return (Number(b.Score) || 0) - (Number(a.Score) || 0);
+        })
+        .slice(0, limit);
+
+    let html = `<h3>🏛️ Güçlü Büyükler</h3>
+                <div style="margin-bottom:10px; color:#94a3b8;">
+                    Piyasa değeri en yüksek ${poolSize} hisse içinden, bilanço skoru en güçlü ${limit} hisse.
+                </div>`;
+
+    sorted.forEach(s => {
+        let score = s.Score || 0;
+        let scoreClamped = Math.min(score, 1);
+        let scorePct = scoreClamped * 100;
+        let percent = scorePct;
+
+        let scoreLabel =
+            scoreClamped > 0.80 ? "elite" :
+            scoreClamped > 0.70 ? "güçlü" :
+            scoreClamped > 0.60 ? "iyi" :
+            scoreClamped > 0.45 ? "orta" :
+            "zayıf";
+
+        html += `
+            <div class="list-item">
+                <b>
+                #${s.Super_Rank ?? "-"}
+                <span class="hisse-link"
+                      onclick="secHisse('${s.Kod}')"
+                      onmouseenter="showTooltip(event, '${s.Kod}')"
+                      onmouseleave="hideTooltip()">
+                    ${s.Kod}
+                </span>
+                </b><br>
+
+                🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
+                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
+                🏦 Piyasa Değeri: ${formatMarketCap(s.PiyasaDegeri)}<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
                 <div style="margin-top:6px; color:#94a3b8;">
