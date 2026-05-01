@@ -761,10 +761,24 @@ function formatMarketCap(value) {
     return `${cap.toFixed(0)} mn TL`;
 }
 
+function getMarketCap(stock) {
+    const directCap = Number(stock.PiyasaDegeri);
+    if (Number.isFinite(directCap) && directCap > 0) return directCap;
+
+    const price = Number(livePrices[stock.Kod] ?? stock.Fiyat);
+    const sermaye = Number(stock.Sermaye);
+
+    if (!Number.isFinite(price) || price <= 0) return null;
+    if (!Number.isFinite(sermaye) || sermaye <= 0) return null;
+
+    return (price * sermaye) / 1e6;
+}
+
 function showLargeCaps(limit = 50, poolSize = 100) {
     const largestPool = [...data]
-        .filter(x => Number.isFinite(Number(x.PiyasaDegeri)) && Number(x.PiyasaDegeri) > 0)
-        .sort((a, b) => Number(b.PiyasaDegeri) - Number(a.PiyasaDegeri))
+        .map(x => ({ ...x, _marketCap: getMarketCap(x) }))
+        .filter(x => Number.isFinite(Number(x._marketCap)) && Number(x._marketCap) > 0)
+        .sort((a, b) => Number(b._marketCap) - Number(a._marketCap))
         .slice(0, poolSize);
 
     const sorted = largestPool
@@ -809,7 +823,7 @@ function showLargeCaps(limit = 50, poolSize = 100) {
 
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
                 💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
-                🏦 Piyasa Değeri: ${formatMarketCap(s.PiyasaDegeri)}<br>
+                🏦 Piyasa Değeri: ${formatMarketCap(s._marketCap)}<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
                 <div style="margin-top:6px; color:#94a3b8;">
