@@ -1,6 +1,7 @@
 import json
 import os
 import re
+from urllib.request import urlopen
 from datetime import datetime
 from pathlib import Path
 
@@ -13,6 +14,10 @@ DATA_JSON_PATH = ROOT_DIR / "data.json"
 STATUS_JSON_PATH = ROOT_DIR / "gcm_update_status.json"
 GCM_URL = "https://www.gcmyatirim.com.tr/arastirma-analiz/yurt-ici-bilanco-takvimi"
 DEFAULT_QUARTER = os.environ.get("GCM_QUARTER_LABEL", "2026 1. Çeyrek")
+DEFAULT_DATA_JSON_URL = os.environ.get(
+    "DATA_JSON_URL",
+    "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e",
+)
 
 ROW_RE = re.compile(
     r"([A-ZÇĞİÖŞÜa-zçğıöşü0-9 .,&'’/\\-*]+?\(([A-Z0-9]{4,5})\))"
@@ -60,10 +65,14 @@ def normalize_gcm_date(value):
 
 
 def load_local_bilanco_dates():
-    if not DATA_JSON_PATH.exists():
-        raise FileNotFoundError(f"data.json bulunamadi: {DATA_JSON_PATH}")
+    payload = None
 
-    payload = json.loads(DATA_JSON_PATH.read_text(encoding="utf-8"))
+    if DATA_JSON_PATH.exists():
+        payload = json.loads(DATA_JSON_PATH.read_text(encoding="utf-8"))
+    else:
+        with urlopen(DEFAULT_DATA_JSON_URL, timeout=30) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+
     mapping = {}
     for row in payload:
         code = str(row.get("Kod") or "").strip().upper()
