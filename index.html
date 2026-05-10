@@ -52,47 +52,6 @@ button {
     background: #1e40af;
 }
 
-#gcm-warning {
-    display: none;
-    margin: 0 0 12px 0;
-    padding: 12px 14px;
-    border-radius: 12px;
-    background: rgba(245, 158, 11, 0.14);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    color: #fde68a;
-    line-height: 1.45;
-}
-
-#gcm-warning strong {
-    color: #fef3c7;
-}
-
-#gcm-warning .meta {
-    margin-top: 6px;
-    color: #cbd5e1;
-    font-size: 13px;
-}
-
-#gcm-warning .symbols {
-    margin-top: 8px;
-}
-
-#gcm-warning .chip {
-    display: inline-block;
-    margin: 4px 6px 0 0;
-    padding: 5px 9px;
-    border-radius: 999px;
-    background: rgba(30, 64, 175, 0.5);
-    color: #bfdbfe;
-    cursor: pointer;
-    font-size: 13px;
-    font-weight: 700;
-}
-
-#gcm-warning .chip:hover {
-    background: rgba(37, 99, 235, 0.75);
-}
-
 /* suggestions */
 #suggestions {
     background: #1e293b;
@@ -210,8 +169,6 @@ button {
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
 </div>
 
-<div id="gcm-warning"></div>
-
 <div class="input-row">
     <input id="symbol" placeholder="Hisse gir">
     <button onclick="search()">Analiz Et</button>
@@ -246,7 +203,6 @@ async function loadData() {
             data = json;
             showTop(10);
             loadPrices();
-            loadGcmStatus();
             return;
         }
     } catch (e) {
@@ -254,65 +210,9 @@ async function loadData() {
     }
 
     console.error("No valid data source found");
-    loadGcmStatus();
 }
 
 loadData();
-async function loadGcmStatus() {
-    const warningEl = document.getElementById("gcm-warning");
-    if (!warningEl) return;
-
-    const ts = Date.now();
-    const sources = [
-        `./gcm_update_status.json?v=${ts}`,
-        "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/gcm_update_status.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e"
-    ];
-
-    for (const source of sources) {
-        try {
-            const res = await fetch(source, { cache: "no-store" });
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-            const payload = await res.json();
-            renderGcmWarning(payload);
-            return;
-        } catch (e) {
-            console.error("GCM STATUS LOAD ERROR:", source, e);
-        }
-    }
-
-    warningEl.style.display = "none";
-}
-
-function renderGcmWarning(payload) {
-    const warningEl = document.getElementById("gcm-warning");
-    if (!warningEl) return;
-
-    const count = Number(payload?.count || 0);
-    const symbols = Array.isArray(payload?.symbols) ? payload.symbols : [];
-
-    if (!count || !symbols.length) {
-        warningEl.style.display = "none";
-        warningEl.innerHTML = "";
-        return;
-    }
-
-    const symbolHtml = symbols
-        .slice(0, 12)
-        .map((symbol) => `<span class="chip" onclick="secHisse('${symbol}')">${symbol}</span>`)
-        .join("");
-
-    const extraCount = symbols.length > 12 ? `<span class="chip">+${symbols.length - 12}</span>` : "";
-    const updatedAt = payload?.updated_at ? `Son kontrol: ${payload.updated_at}` : "";
-    const quarter = payload?.quarter ? `Donem: ${payload.quarter}` : "";
-
-    warningEl.innerHTML = `
-        <strong>GCM Uyarisi:</strong> ${count} hisseye guncelleme geldi.
-        <div class="symbols">${symbolHtml}${extraCount}</div>
-        <div class="meta">${updatedAt}${updatedAt && quarter ? " | " : ""}${quarter}</div>
-    `;
-    warningEl.style.display = "block";
-}
 /* helpers */
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
