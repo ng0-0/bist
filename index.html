@@ -42,23 +42,16 @@ button {
 
 /* TOP BUTTONS */
 .top-buttons {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
     gap: 8px;
     margin-bottom: 10px;
 }
 
 .top-buttons button {
+    flex: 1;
     background: #1e40af;
-    min-width: 0;
     font-size: 14px;
     line-height: 1.2;
-}
-
-@media (max-width: 560px) {
-    .top-buttons {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 }
 
 /* suggestions */
