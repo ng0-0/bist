@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
@@ -50,8 +50,6 @@ button {
 .top-buttons button {
     flex: 1;
     background: #1e40af;
-    font-size: 14px;
-    line-height: 1.2;
 }
 
 /* suggestions */
@@ -163,7 +161,8 @@ button {
 <h2>📊 BIST Analyzer</h2>
 
 <div class="top-buttons">
-    <button onclick="showAnalyses()">Analizler</button>
+    <button onclick="showTop(10)">Top 10</button>
+    <button onclick="showTop(100)">Top 100</button>
     <button onclick="showLargeCaps(50, 100)">Güçlü Büyükler</button>
     <button onclick="showRecentBilancos(50)">Son Bilançolar</button>
     <button onclick="showBanks(20)">Bankalar</button>
@@ -185,16 +184,6 @@ button {
 
 let data = [];
 let livePrices = {};
-let stockMap = new Map();
-let suggestionTimer = null;
-let currentView = "";
-let analysisSorted = [];
-let analysisRenderedCount = 0;
-const ANALYSIS_BATCH_SIZE = 100;
-
-function normalizeKod(value) {
-    return String(value || "").toUpperCase().replace(/\s+/g, "").trim();
-}
 
 async function loadData() {
     const source = "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e";
@@ -212,8 +201,8 @@ async function loadData() {
             console.log("DATA SOURCE:", source);
             console.log("DATA LENGTH:", json.length);
             data = json;
-            stockMap = new Map(data.map(item => [normalizeKod(item.Kod), item]));
-            showAnalyses();
+            showTop(10);
+            loadPrices();
             return;
         }
     } catch (e) {
@@ -224,132 +213,6 @@ async function loadData() {
 }
 
 loadData();
-function showAnalyses() {
-    currentView = "analyses";
-    analysisSorted = [...data].sort((a,b)=> {
-        let ra = a.Super_Rank ?? 9999;
-        let rb = b.Super_Rank ?? 9999;
-        return ra - rb;
-    });
-    analysisRenderedCount = 0;
-    document.getElementById("toplist").innerHTML = `
-        <h3>📊 Analizler</h3>
-        <div id="analysis-meta" style="margin-bottom:10px; color:#94a3b8;"></div>
-        <div id="analysis-list"></div>
-    `;
-    renderNextAnalysisBatch(true);
-}
-
-function renderAnalysisCard(s) {
-    let score = s.Score || 0;
-    let scoreClamped = Math.min(score, 1);
-    let scorePct = scoreClamped * 100;
-    let percent = scorePct;
-
-    let scoreLabel =
-        scoreClamped > 0.80 ? "elite" :
-        scoreClamped > 0.70 ? "güçlü" :
-        scoreClamped > 0.60 ? "iyi" :
-        scoreClamped > 0.45 ? "orta" :
-        "zayıf";
-
-    let cap = s.SmallCap ? "⚠️" : "";
-    let istikrar = 1 - (s.volatilite || 0);
-    let istikrarLabel =
-        istikrar > 0.7 ? "yüksek" :
-        istikrar > 0.4 ? "orta" :
-        "düşük";
-
-    let isBank = s.Sektor?.includes("Bank");
-    let marginText = "";
-
-    if (isBank) {
-        marginText = "📊 Kârlılık: banka modeli";
-    } else {
-        let margin = s.Net_Margin || 0;
-        margin = Math.max(-1, Math.min(1, margin));
-
-        let marginLabel =
-            margin > 0.20 ? "çok yüksek" :
-            margin > 0.10 ? "yüksek" :
-            margin > 0.05 ? "iyi" :
-            margin > 0 ? "zayıf" :
-            "negatif";
-
-        marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
-    }
-
-    let marginRel = s.margin_rel || 1;
-    let marginRelLabel =
-        marginRel > 1.5 ? "sektöre göre çok iyi" :
-        marginRel > 1.1 ? "sektöre göre daha yüksek" :
-        marginRel > 0.9 ? "sektör ortalamasında" :
-        marginRel > 0.7 ? "sektöre göre düşük" :
-        "sektöre göre zayıf";
-
-    return `
-        <div class="list-item">
-            <b>
-            #${s.Super_Rank ?? "-"} 
-            <span class="hisse-link"
-                  onclick="secHisse('${s.Kod}')"
-                  onmouseenter="showTooltip(event, '${s.Kod}')"
-                  onmouseleave="hideTooltip()">
-                ${s.Kod}
-            </span>
-            ${cap}
-            </b><br>
-
-            🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
-            💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
-            ${marginText}<br>
-            📊 Sektöre Göre: ${marginRelLabel}<br>
-            🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
-
-            <div style="margin-top:6px; color:#94a3b8;">
-            📌 ${s.yorum ?? ""}
-            </div>
-
-            <div class="bar-container">
-                <div class="bar" style="width:${percent}%"></div>
-            </div>
-
-            <button onclick="toggleDetail('${s.Kod}')">Çeyreklik Kârlar</button>
-
-            <div id="d-${s.Kod}" style="display:none; margin-top:6px;">
-                Q1: ${s.NetKar_Q1?.toFixed(2) ?? "-"} MTL<br>
-                Q2: ${s.NetKar_Q2?.toFixed(2) ?? "-"} MTL<br>
-                Q3: ${s.NetKar_Q3?.toFixed(2) ?? "-"} MTL<br>
-                Q4: ${s.NetKar_Q4?.toFixed(2) ?? "-"} MTL<br>
-                📉 Kâr İstikrarı: ${(istikrar * 100).toFixed(0)}% (${istikrarLabel})
-            </div>
-        </div>
-    `;
-}
-
-function renderNextAnalysisBatch(reset = false) {
-    if (currentView !== "analyses") return;
-
-    const list = document.getElementById("analysis-list");
-    const meta = document.getElementById("analysis-meta");
-    if (!list || !meta) return;
-
-    if (reset) {
-        list.innerHTML = "";
-        analysisRenderedCount = 0;
-    }
-
-    const nextItems = analysisSorted.slice(
-        analysisRenderedCount,
-        analysisRenderedCount + ANALYSIS_BATCH_SIZE
-    );
-
-    if (!nextItems.length) return;
-
-    list.insertAdjacentHTML("beforeend", nextItems.map(renderAnalysisCard).join(""));
-    analysisRenderedCount += nextItems.length;
-    meta.textContent = `${analysisRenderedCount}/${analysisSorted.length} hisse yüklendi`;
-}
 /* helpers */
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
@@ -448,13 +311,8 @@ function getMomentumLabel(m) {
 
 /* autocomplete */
 document.getElementById("symbol").addEventListener("input", function() {
-    clearTimeout(suggestionTimer);
-    const currentValue = this.value;
-    suggestionTimer = setTimeout(() => showSuggestions(currentValue), 120);
-});
 
-function showSuggestions(rawValue) {
-    let value = normalizeKod(rawValue);
+    let value = this.value.toUpperCase().trim();
     let box = document.getElementById("suggestions");
 
     if (!value) {
@@ -463,7 +321,7 @@ function showSuggestions(rawValue) {
     }
 
     let filtered = data
-        .filter(x => normalizeKod(x.Kod).startsWith(value))
+        .filter(x => x.Kod && x.Kod.toUpperCase().startsWith(value))
         .sort((a,b)=> (b.Score||0)-(a.Score||0))
         .slice(0,50);
 
@@ -488,7 +346,7 @@ function showSuggestions(rawValue) {
 
         box.appendChild(div);
     });
-}
+});
 
 
 async function loadPrices() {
@@ -516,15 +374,15 @@ async function loadPrices() {
 /* search */
 async function search() {
 
-    let s = normalizeKod(document.getElementById("symbol").value);
-    let stock = stockMap.get(s);
+    let s = document.getElementById("symbol").value.toUpperCase().replace(/\s+/g, "").trim();
+    let stock = data.find(x => String(x.Kod || "").toUpperCase().replace(/\s+/g, "").trim() === s);
 
     if (!stock) {
         document.getElementById("result").innerHTML = "❌ Hisse bulunamadı";
         return;
     }
 
-    let livePrice = Number(livePrices[stock.Kod] ?? stock.Fiyat ?? stock.GuncelFiyat);
+    let livePrice = livePrices[stock.Kod];
     let pot = null;
     
     if (livePrice && stock.HedefFiyat) {
@@ -662,7 +520,6 @@ async function search() {
 }
 /* top list */
 function showTop(n) {
-    currentView = "static";
 
     let sorted = [...data]
         .sort((a,b)=> {
@@ -672,8 +529,7 @@ function showTop(n) {
         })
         .slice(0,n);
 
-    let title = n >= data.length ? "📊 Analizler" : "📊 En Güçlü Hisseler";
-    let html = `<h3>${title}</h3>`;
+    let html = "<h3>📊 En Güçlü Hisseler</h3>";
 
     sorted.forEach(s => {
 
@@ -778,7 +634,6 @@ function showTop(n) {
 }
 
 function showRecentBilancos(n) {
-    currentView = "recent";
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -831,7 +686,6 @@ function showRecentBilancos(n) {
 }
 
 function showBanks(n) {
-    currentView = "banks";
 
     let sorted = [...data]
         .filter(x => x.Sektor?.includes("Bank"))
@@ -921,7 +775,6 @@ function getMarketCap(stock) {
 }
 
 function showLargeCaps(limit = 50, poolSize = 100) {
-    currentView = "largecaps";
     const largestPool = [...data]
         .map(x => ({ ...x, _marketCap: getMarketCap(x) }))
         .filter(x => Number.isFinite(Number(x._marketCap)) && Number(x._marketCap) > 0)
@@ -1011,7 +864,6 @@ function smartScore(x) {
 }
 
 function showByAnalyst() {
-    currentView = "analyst";
 
     let sorted = [...data]
         .filter(x => x.AnalistSayisi || x.ModelPortfoy || x.PotansiyelGetiri)
@@ -1107,14 +959,6 @@ window.addEventListener("load", () => {
     if (kod) {
         document.getElementById("symbol").value = kod;
         setTimeout(() => search(), 300);
-    }
-});
-window.addEventListener("scroll", () => {
-    if (currentView !== "analyses") return;
-
-    const nearBottom = window.innerHeight + window.scrollY >= document.body.offsetHeight - 800;
-    if (nearBottom) {
-        renderNextAnalysisBatch();
     }
 });
 </script>
