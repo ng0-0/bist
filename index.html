@@ -446,11 +446,11 @@ async function search() {
     let marginRel = stock.margin_rel || 1;
 
     let marginRelLabel =
-        marginRel > 1.5 ? "sektöre göre çok iyi" :
-        marginRel > 1.1 ? "sektöre göre daha yüksek" :
-        marginRel > 0.9 ? "sektör ortalamasında" :
-        marginRel > 0.7 ? "sektöre göre düşük" :
-        "sektöre göre zayıf";
+        marginRel > 1.5 ? "çok iyi" :
+        marginRel > 1.1 ? "daha yüksek" :
+        marginRel > 0.9 ? "ortalamada" :
+        marginRel > 0.7 ? "düşük" :
+        "zayıf";
 
     // ------------------ RENDER ------------------
     document.getElementById("result").innerHTML = `
@@ -579,12 +579,12 @@ function showTop(n) {
         // ------------------ SEKTÖREL ------------------
         let marginRel = s.margin_rel || 1;
 
-        let marginRelLabel =
-            marginRel > 1.5 ? "sektöre göre çok iyi" :
-            marginRel > 1.1 ? "sektöre göre daha yüksek" :
-            marginRel > 0.9 ? "sektör ortalamasında" :
-            marginRel > 0.7 ? "sektöre göre düşük" :
-            "sektöre göre zayıf";
+    let marginRelLabel =
+        marginRel > 1.5 ? "çok iyi" :
+        marginRel > 1.1 ? "daha yüksek" :
+        marginRel > 0.9 ? "ortalamada" :
+        marginRel > 0.7 ? "düşük" :
+        "zayıf";
 
         html += `
             <div class="list-item">
