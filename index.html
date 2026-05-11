@@ -185,6 +185,12 @@ button {
 
 let data = [];
 let livePrices = {};
+let stockMap = new Map();
+let suggestionTimer = null;
+
+function normalizeKod(value) {
+    return String(value || "").toUpperCase().replace(/\s+/g, "").trim();
+}
 
 async function loadData() {
     const source = "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e";
@@ -202,8 +208,8 @@ async function loadData() {
             console.log("DATA SOURCE:", source);
             console.log("DATA LENGTH:", json.length);
             data = json;
-            showAnalyses();
-            loadPrices();
+            stockMap = new Map(data.map(item => [normalizeKod(item.Kod), item]));
+            showTop(50);
             return;
         }
     } catch (e) {
@@ -315,8 +321,13 @@ function getMomentumLabel(m) {
 
 /* autocomplete */
 document.getElementById("symbol").addEventListener("input", function() {
+    clearTimeout(suggestionTimer);
+    const currentValue = this.value;
+    suggestionTimer = setTimeout(() => showSuggestions(currentValue), 120);
+});
 
-    let value = this.value.toUpperCase().trim();
+function showSuggestions(rawValue) {
+    let value = normalizeKod(rawValue);
     let box = document.getElementById("suggestions");
 
     if (!value) {
@@ -325,7 +336,7 @@ document.getElementById("symbol").addEventListener("input", function() {
     }
 
     let filtered = data
-        .filter(x => x.Kod && x.Kod.toUpperCase().startsWith(value))
+        .filter(x => normalizeKod(x.Kod).startsWith(value))
         .sort((a,b)=> (b.Score||0)-(a.Score||0))
         .slice(0,50);
 
@@ -350,7 +361,7 @@ document.getElementById("symbol").addEventListener("input", function() {
 
         box.appendChild(div);
     });
-});
+}
 
 
 async function loadPrices() {
@@ -378,15 +389,15 @@ async function loadPrices() {
 /* search */
 async function search() {
 
-    let s = document.getElementById("symbol").value.toUpperCase().replace(/\s+/g, "").trim();
-    let stock = data.find(x => String(x.Kod || "").toUpperCase().replace(/\s+/g, "").trim() === s);
+    let s = normalizeKod(document.getElementById("symbol").value);
+    let stock = stockMap.get(s);
 
     if (!stock) {
         document.getElementById("result").innerHTML = "❌ Hisse bulunamadı";
         return;
     }
 
-    let livePrice = livePrices[stock.Kod];
+    let livePrice = Number(livePrices[stock.Kod] ?? stock.Fiyat ?? stock.GuncelFiyat);
     let pot = null;
     
     if (livePrice && stock.HedefFiyat) {
