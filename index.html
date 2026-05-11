@@ -42,14 +42,23 @@ button {
 
 /* TOP BUTTONS */
 .top-buttons {
-    display: flex;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
     margin-bottom: 10px;
 }
 
 .top-buttons button {
-    flex: 1;
     background: #1e40af;
+    min-width: 0;
+    font-size: 14px;
+    line-height: 1.2;
+}
+
+@media (max-width: 560px) {
+    .top-buttons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 /* suggestions */
@@ -161,8 +170,7 @@ button {
 <h2>📊 BIST Analyzer</h2>
 
 <div class="top-buttons">
-    <button onclick="showTop(10)">Top 10</button>
-    <button onclick="showTop(100)">Top 100</button>
+    <button onclick="showAnalyses()">Analizler</button>
     <button onclick="showLargeCaps(50, 100)">Güçlü Büyükler</button>
     <button onclick="showRecentBilancos(50)">Son Bilançolar</button>
     <button onclick="showBanks(20)">Bankalar</button>
@@ -201,7 +209,7 @@ async function loadData() {
             console.log("DATA SOURCE:", source);
             console.log("DATA LENGTH:", json.length);
             data = json;
-            showTop(10);
+            showAnalyses();
             loadPrices();
             return;
         }
@@ -213,6 +221,9 @@ async function loadData() {
 }
 
 loadData();
+function showAnalyses() {
+    showTop(data.length || 1000);
+}
 /* helpers */
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
@@ -529,7 +540,8 @@ function showTop(n) {
         })
         .slice(0,n);
 
-    let html = "<h3>📊 En Güçlü Hisseler</h3>";
+    let title = n >= data.length ? "📊 Analizler" : "📊 En Güçlü Hisseler";
+    let html = `<h3>${title}</h3>`;
 
     sorted.forEach(s => {
 
