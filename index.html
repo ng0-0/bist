@@ -218,7 +218,21 @@ function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
 }
 
+function normalizeKararLabel(karar) {
+    const text = String(karar || "").trim().toUpperCase();
+
+    if (text === "G??L? AL" || text === "GÜÇLÜ AL") return "GÜÇLÜ AL";
+    if (text === "N?TR" || text === "NÖTR") return "NÖTR";
+    if (text === "AL") return "AL";
+    if (text === "TUT") return "TUT";
+    if (text === "ZAYIF") return "ZAYIF";
+    if (text === "SAT") return "SAT";
+
+    return text || "NÖTR";
+}
+
 function getColor(karar) {
+    karar = normalizeKararLabel(karar);
     if (karar === "GÜÇLÜ AL" || karar === "AL") return "green";
     if (karar === "TUT" || karar === "NÖTR") return "orange";
     return "red";
@@ -254,6 +268,7 @@ async function getLivePrice(symbol) {
     }
 }
 function getSignal(karar) {
+    karar = normalizeKararLabel(karar);
     switch(karar) {
         case "GÜÇLÜ AL": return "🔥 GÜÇLÜ AL";
         case "AL": return "🟢 AL";
@@ -393,7 +408,7 @@ async function search() {
     let scoreClamped = Math.min(score, 1);
     let scorePct = scoreClamped * 100;
 
-    let karar = stock.karar || "NÖTR";
+    let karar = normalizeKararLabel(stock.karar || "NÖTR");
     let percent = scorePct;
     let color = getColor(karar);
 
@@ -915,7 +930,7 @@ function showTooltip(e, kod) {
     if (!h) return;
 
     let score = h.Score || 0;
-    let karar = h.karar || "NÖTR";
+    let karar = normalizeKararLabel(h.karar || "NÖTR");
     let renk = score > 0.75 ? "#22c55e" :
                 score > 0.60 ? "#4ade80" :
                 score > 0.45 ? "#facc15" : "#ef4444";
