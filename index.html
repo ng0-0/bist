@@ -186,10 +186,11 @@ let data = [];
 let livePrices = {};
 
 async function loadData() {
-    const source = "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e";
+    const source = new URL("https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e");
+    source.searchParams.set("_ts", String(Date.now()));
 
     try {
-        const res = await fetch(source, { cache: "no-store" });
+        const res = await fetch(source.toString(), { cache: "no-store" });
         if (!res.ok) {
             throw new Error(`HTTP ${res.status}`);
         }
@@ -198,7 +199,7 @@ async function loadData() {
         const json = JSON.parse(text);
 
         if (Array.isArray(json) && json.length) {
-            console.log("DATA SOURCE:", source);
+            console.log("DATA SOURCE:", source.toString());
             console.log("DATA LENGTH:", json.length);
             data = json;
             showTop(10);
@@ -206,7 +207,7 @@ async function loadData() {
             return;
         }
     } catch (e) {
-        console.error("LOAD ERROR:", source, e);
+        console.error("LOAD ERROR:", source.toString(), e);
     }
 
     console.error("No valid data source found");
