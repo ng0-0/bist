@@ -86,6 +86,8 @@ button {
 .green { color: #22c55e; }
 .red { color: #ef4444; }
 .orange { color: #f59e0b; }
+.delta-up { color: #22c55e; font-weight: 700; margin-left: 2px; }
+.delta-down { color: #ef4444; font-weight: 700; margin-left: 2px; }
 
 /* bar */
 .bar-container {
@@ -164,7 +166,7 @@ button {
     <button onclick="showTop(10)">Top 10</button>
     <button onclick="showTop(100)">Top 100</button>
     <button onclick="showLargeCaps(50, 100)">Güçlü Büyükler</button>
-    <button onclick="showRecentBilancos(50)">Son Bilançolar</button>
+    <button onclick="showRecentBilancos()">Son Bilançolar</button>
     <button onclick="showBanks(20)">Bankalar</button>
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
 </div>
@@ -221,9 +223,27 @@ function normalize(score) {
 
 function normalizeKararLabel(karar) {
     const text = String(karar || "").trim().toUpperCase();
+    const compact = text
+        .normalize("NFKD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Z ]+/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
 
-    if (text === "G??L? AL" || text === "GÜÇLÜ AL") return "GÜÇLÜ AL";
-    if (text === "N?TR" || text === "NÖTR") return "NÖTR";
+    if (
+        text === "G??L? AL" ||
+        text === "GÜÇLÜ AL" ||
+        text === "GĂŚĂ‡LĂŚ AL" ||
+        compact === "GL AL"
+    ) return "GÜÇLÜ AL";
+
+    if (
+        text === "N?TR" ||
+        text === "NÖTR" ||
+        text === "NĂ–TR" ||
+        compact === "NTR"
+    ) return "NÖTR";
+
     if (text === "AL") return "AL";
     if (text === "TUT") return "TUT";
     if (text === "ZAYIF") return "ZAYIF";
@@ -323,6 +343,17 @@ function getMomentumLabel(m) {
     if (m > 10) return "🔥 Güçlü AL";
     if (m > 0) return "🟡 Orta";
     return "🔴 Zayıf";
+}
+
+function formatCountWithDelta(baseValue, deltaValue) {
+    const current = Number(baseValue) || 0;
+    const delta = Number(deltaValue) || 0;
+
+    if (!delta) return `${current}`;
+
+    const previous = current - delta;
+    if (delta > 0) return `${previous}<span class="delta-up">+${delta}</span>`;
+    return `${previous}<span class="delta-down">${delta}</span>`;
 }
 
 /* autocomplete */
@@ -492,7 +523,7 @@ async function search() {
 
             ${cap}
 
-            👨‍💼 Analist: ${stock.AnalistSayisi || 0}<br>
+            👨‍💼 Analist: ${formatCountWithDelta(stock.AnalistSayisi, stock.AnalistDelta)}<br>
             📦 Model Portföy: ${stock.ModelPortfoy || 0}<br>
             🎯 Hedef Fiyat: ${stock.HedefFiyat ?? "YOK"} 
             (${pot ? pot.toFixed(2) + "%" : "NA"})<br>
@@ -649,7 +680,7 @@ function showTop(n) {
     document.getElementById("toplist").innerHTML = html;
 }
 
-function showRecentBilancos(n) {
+function showRecentBilancos(n = null) {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -660,10 +691,13 @@ function showRecentBilancos(n) {
         .filter(x => parseBilancoDate(x.Bilanco_Tarih))
         .map(x => ({ ...x, _bilancoDate: parseBilancoDate(x.Bilanco_Tarih) }))
         .filter(x => x._bilancoDate >= threshold)
-        .sort((a, b) => b._bilancoDate - a._bilancoDate)
-        .slice(0, n);
+        .sort((a, b) => b._bilancoDate - a._bilancoDate);
 
-    let html = "<h3>📅 Son Bilançolar (30 Gün)</h3>";
+    if (Number.isFinite(Number(n)) && Number(n) > 0) {
+        sorted = sorted.slice(0, Number(n));
+    }
+
+    let html = `<h3>📅 Son Bilançolar (30 Gün) - ${sorted.length} hisse</h3>`;
 
     sorted.forEach(s => {
         let score = s.Score || 0;
@@ -908,7 +942,7 @@ function showByAnalyst() {
                 ${cap}
                 </b><br>
 
-                👨‍💼 ${s.AnalistSayisi || 0} | 
+                👨‍💼 ${formatCountWithDelta(s.AnalistSayisi, s.AnalistDelta)} | 
                 📦 ${s.ModelPortfoy || 0} | 
                 🎯 ${Number(s.PotansiyelGetiri || 0).toFixed(1)}%<br>
 
