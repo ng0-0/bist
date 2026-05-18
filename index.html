@@ -217,6 +217,19 @@ async function loadData() {
 
 loadData();
 /* helpers */
+function getDisplayFk(stock, livePriceOverride = null) {
+    const baseFk = Number(stock?.fk);
+    if (!Number.isFinite(baseFk) || baseFk <= 0) return null;
+
+    const basePrice = Number(stock?.Fiyat);
+    const livePrice = Number(livePriceOverride ?? livePrices[stock?.Kod]);
+
+    if (Number.isFinite(basePrice) && basePrice > 0 && Number.isFinite(livePrice) && livePrice > 0) {
+        return baseFk * (livePrice / basePrice);
+    }
+
+    return baseFk;
+}
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
 }
@@ -430,6 +443,7 @@ async function search() {
     }
 
     let livePrice = livePrices[stock.Kod];
+    let displayFk = getDisplayFk(stock, livePrice);
     let pot = null;
     
     if (livePrice && stock.HedefFiyat) {
@@ -507,7 +521,7 @@ async function search() {
 
             🏭 Sektör: ${stock.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-            💰 FK: ${stock.fk?.toFixed(2) ?? "NA"} | 
+            💰 FK: ${displayFk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${stock.PD_DD?.toFixed(2) ?? "NA"}<br>
 
             ${marginText}<br>
@@ -649,7 +663,7 @@ function showTop(n) {
 
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
 
-                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | 
+                💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
 
                 ${marginText}<br>
@@ -718,7 +732,7 @@ function showRecentBilancos(n = null) {
                 </b><br>
 
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
-                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
+                💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
                 🧠 Score: ${scorePct.toFixed(0)}<br>
 
                 <div style="margin-top:6px; color:#94a3b8;">
@@ -782,7 +796,7 @@ function showBanks(n) {
                 </b><br>
 
                 🏦 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
-                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
+                💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
                 📊 ROE: ${(roe * 100).toFixed(1)}% (${roeLabel})<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
@@ -872,7 +886,7 @@ function showLargeCaps(limit = 50, poolSize = 100) {
                 </b><br>
 
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
-                💰 FK: ${s.fk?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
+                💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${s.PD_DD?.toFixed(2) ?? "NA"}<br>
                 🏦 Piyasa Değeri: ${formatMarketCap(s._marketCap)}<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
@@ -973,7 +987,7 @@ function showTooltip(e, kod) {
     t.innerHTML = `
         <b>${kod}</b><br>
         Karar: ${karar}<br>
-        FK: ${h.fk?.toFixed(2) ?? "-"}<br>
+        FK: ${getDisplayFk(h)?.toFixed(2) ?? "-"}<br>
         PD/DD: ${h.PD_DD?.toFixed(2) ?? "-"}<br>
         ${karlilikText}<br>
         Skor: ${score.toFixed(2)}
@@ -1015,3 +1029,4 @@ window.addEventListener("load", () => {
 
 </body>
 </html>
+
