@@ -186,6 +186,10 @@ button {
 
 let data = [];
 let livePrices = {};
+let activeListMode = null;
+let infiniteTopList = [];
+let infiniteRenderedCount = 0;
+const infiniteBatchSize = 10;
 
 async function loadData() {
     const source = new URL("https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e");
@@ -380,6 +384,12 @@ function getMomentumLabel(m) {
     return "🔴 Zayıf";
 }
 
+function disableInfiniteMode() {
+    activeListMode = null;
+    infiniteTopList = [];
+    infiniteRenderedCount = 0;
+}
+
 function formatCountWithDelta(baseValue, deltaValue) {
     const current = Number(baseValue) || 0;
     const delta = Number(deltaValue) || 0;
@@ -465,6 +475,12 @@ async function search() {
     }
 
     let livePrice = livePrices[stock.Kod];
+    if (!Number.isFinite(Number(livePrice)) || Number(livePrice) <= 0) {
+        livePrice = await getLivePrice(stock.Kod);
+        if (Number.isFinite(Number(livePrice)) && Number(livePrice) > 0) {
+            livePrices[stock.Kod] = Number(livePrice);
+        }
+    }
     let displayFk = getDisplayFk(stock, livePrice);
     let displayPdDd = getDisplayPdDd(stock, livePrice);
     let pot = null;
@@ -602,20 +618,7 @@ async function search() {
         </div>
     `;
 }
-/* top list */
-function showTop(n) {
-
-    let sorted = [...data]
-        .sort((a,b)=> {
-            let ra = a.Super_Rank ?? 9999;
-            let rb = b.Super_Rank ?? 9999;
-            return ra - rb;
-        })
-        .slice(0,n);
-
-    let html = "<h3>📊 En Güçlü Hisseler</h3>";
-
-    sorted.forEach(s => {
+function buildTopListItem(s) {
 
         // ------------------ SCORE ------------------
         let score = s.Score || 0;
@@ -663,15 +666,15 @@ function showTop(n) {
         // ------------------ SEKTÖREL ------------------
         let marginRel = s.margin_rel || 1;
 
-    let marginRelLabel =
-        marginRel > 1.5 ? "çok iyi" :
-        marginRel > 1.1 ? "daha yüksek" :
-        marginRel > 0.9 ? "ortalamada" :
-        marginRel > 0.7 ? "düşük" :
-        "zayıf";
+        let marginRelLabel =
+            marginRel > 1.5 ? "çok iyi" :
+            marginRel > 1.1 ? "daha yüksek" :
+            marginRel > 0.9 ? "ortalamada" :
+            marginRel > 0.7 ? "düşük" :
+            "zayıf";
 
-        html += `
-            <div class="list-item">
+        return `
+            <div class="list-item top-dynamic-item">
 
                 <b>
                 #${s.Super_Rank ?? "-"} 
@@ -712,12 +715,81 @@ function showTop(n) {
 
             </div>
         `;
+}
+
+function renderInfiniteTopChunk() {
+    const nextItems = infiniteTopList.slice(
+        infiniteRenderedCount,
+        infiniteRenderedCount + infiniteBatchSize
+    );
+
+    if (!nextItems.length) return;
+
+    const topList = document.getElementById("toplist");
+    const listRoot = document.getElementById("toplist-items");
+    if (!listRoot) return;
+
+    listRoot.insertAdjacentHTML(
+        "beforeend",
+        nextItems.map(buildTopListItem).join("")
+    );
+
+    infiniteRenderedCount += nextItems.length;
+
+    const countEl = document.getElementById("toplist-count");
+    if (countEl) {
+        countEl.textContent = `${infiniteRenderedCount} / ${infiniteTopList.length}`;
+    }
+
+    if (infiniteRenderedCount >= infiniteTopList.length) {
+        const moreEl = document.getElementById("toplist-more");
+        if (moreEl) {
+            moreEl.textContent = "Tüm hisseler yüklendi";
+        }
+    }
+}
+
+/* top list */
+function showTop(n) {
+    let sorted = [...data]
+        .sort((a,b)=> {
+            let ra = a.Super_Rank ?? 9999;
+            let rb = b.Super_Rank ?? 9999;
+            return ra - rb;
+        });
+
+    if (n === 10) {
+        activeListMode = "top-infinite";
+        infiniteTopList = sorted;
+        infiniteRenderedCount = 0;
+
+        document.getElementById("toplist").innerHTML = `
+            <h3>📊 En Güçlü Hisseler</h3>
+            <div style="margin-bottom:10px; color:#94a3b8;">
+                Kaydırdıkça 10 hisse daha yüklenir. <span id="toplist-count">0 / ${infiniteTopList.length}</span>
+            </div>
+            <div id="toplist-items"></div>
+            <div id="toplist-more" style="margin-top:10px; color:#94a3b8;">Daha fazla hisse için aşağı kaydır</div>
+        `;
+
+        renderInfiniteTopChunk();
+        return;
+    }
+
+    disableInfiniteMode();
+    sorted = sorted.slice(0,n);
+
+    let html = "<h3>📊 En Güçlü Hisseler</h3>";
+
+    sorted.forEach(s => {
+        html += buildTopListItem(s);
     });
 
     document.getElementById("toplist").innerHTML = html;
 }
 
 function showRecentBilancos(n = null) {
+    disableInfiniteMode();
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -773,6 +845,7 @@ function showRecentBilancos(n = null) {
 }
 
 function showBanks(n) {
+    disableInfiniteMode();
 
     let sorted = [...data]
         .filter(x => x.Sektor?.includes("Bank"))
@@ -862,6 +935,7 @@ function getMarketCap(stock) {
 }
 
 function showLargeCaps(limit = 50, poolSize = 100) {
+    disableInfiniteMode();
     const largestPool = [...data]
         .map(x => ({ ...x, _marketCap: getMarketCap(x) }))
         .filter(x => Number.isFinite(Number(x._marketCap)) && Number(x._marketCap) > 0)
@@ -926,6 +1000,7 @@ function showLargeCaps(limit = 50, poolSize = 100) {
 
     document.getElementById("toplist").innerHTML = html;
 }
+
 function toggleDetail(kod) {
     let el = document.getElementById("d-" + kod);
     el.style.display = (el.style.display === "none") ? "block" : "none";
@@ -951,6 +1026,7 @@ function smartScore(x) {
 }
 
 function showByAnalyst() {
+    disableInfiniteMode();
 
     let sorted = [...data]
         .filter(x => x.AnalistSayisi || x.ModelPortfoy || x.PotansiyelGetiri)
@@ -1035,6 +1111,17 @@ document.addEventListener("mousemove", (e) => {
     if (t.style.display === "block") {
         t.style.left = (e.clientX + 10) + "px";
         t.style.top = (e.clientY + 10) + "px";
+    }
+});
+
+window.addEventListener("scroll", () => {
+    if (activeListMode !== "top-infinite") return;
+
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const triggerPoint = document.body.offsetHeight - 300;
+
+    if (scrollPosition >= triggerPoint) {
+        renderInfiniteTopChunk();
     }
 });
 
