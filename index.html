@@ -50,6 +50,10 @@ button {
 .top-buttons button {
     flex: 1;
     background: #1e40af;
+    min-width: 0;
+    padding: 10px 8px;
+    font-size: 0.95rem;
+    line-height: 1.15;
 }
 
 /* suggestions */
@@ -164,7 +168,7 @@ button {
 
 <div class="top-buttons">
     <button onclick="showTop(10)">Tüm Hisseler</button>
-    <button onclick="showTop(100)">Top 100</button>
+    <button onclick="showPortfolio()">Hisselerim</button>
     <button onclick="showLargeCaps(50, 100)">Güçlü Büyükler</button>
     <button onclick="showRecentBilancos()">Son Bilançolar</button>
     <button onclick="showBanks(20)">Bankalar</button>
@@ -190,6 +194,8 @@ let activeListMode = null;
 let infiniteTopList = [];
 let infiniteRenderedCount = 0;
 const infiniteBatchSize = 10;
+const portfolioSourceBase = "https://dl.dropboxusercontent.com/scl/fi/7cr2pg6akumfs3h0uhn5f/hisselerim.json?rlkey=5fmcv4x84m1cn247gfq2uhi6s";
+let portfolioHoldings = null;
 
 async function loadData() {
     const source = new URL("https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e");
@@ -221,6 +227,36 @@ async function loadData() {
 
 loadData();
 /* helpers */
+function formatPortfolioQty(value) {
+    const qty = Number(value) || 0;
+    return Number.isInteger(qty)
+        ? qty.toLocaleString("tr-TR")
+        : qty.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function buildPortfolioHoldings(transactions = []) {
+    const totals = new Map();
+    transactions.forEach(tx => {
+        const symbol = String(tx?.symbol || "").trim().toUpperCase();
+        const qty = Number(tx?.quantity) || 0;
+        if (!symbol || !qty) return;
+        const sign = String(tx?.type || "").toUpperCase() === "SELL" ? -1 : 1;
+        totals.set(symbol, (totals.get(symbol) || 0) + sign * qty);
+    });
+    return new Map([...totals.entries()].filter(([, qty]) => qty > 0));
+}
+
+async function loadPortfolioHoldings() {
+    if (portfolioHoldings) return portfolioHoldings;
+    const source = new URL(portfolioSourceBase);
+    source.searchParams.set("_ts", String(Date.now()));
+    const res = await fetch(source.toString(), { cache: "no-store" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    portfolioHoldings = buildPortfolioHoldings(json?.transactions || []);
+    return portfolioHoldings;
+}
+
 function getDisplayFk(stock, livePriceOverride = null) {
     const livePrice = Number(livePriceOverride ?? livePrices[stock?.Kod] ?? stock?.Fiyat);
     const sermaye = Number(stock?.Sermaye);
@@ -256,6 +292,51 @@ function getDisplayPdDd(stock, livePriceOverride = null) {
     const basePdDd = Number(stock?.PD_DD);
     return Number.isFinite(basePdDd) && basePdDd > 0 ? basePdDd : null;
 }
+
+function usesRoeProfitability(stock) {
+    const sektor = String(stock?.Sektor || "");
+    return [
+        "Bank",
+        "Varlık Yönetimi",
+        "Finansal Kiralama",
+        "Aracı Kurum",
+        "Sigorta",
+        "Tasarruf Finansman"
+    ].some(key => sektor.includes(key));
+}
+
+function getProfitabilityText(stock) {
+    if (usesRoeProfitability(stock)) {
+        const roe = Number(stock?.ROE);
+        if (Number.isFinite(roe)) {
+            const label =
+                roe > 0.25 ? "çok yüksek" :
+                roe > 0.18 ? "yüksek" :
+                roe > 0.10 ? "iyi" :
+                roe > 0.05 ? "orta" :
+                roe > 0 ? "zayıf" :
+                "negatif";
+            return `📊 Kârlılık: ${(roe * 100).toFixed(1)}% (${label})`;
+        }
+        return "📊 Kârlılık: NA";
+    }
+
+    const margin = Number(stock?.Net_Margin);
+    if (!Number.isFinite(margin)) {
+        return "📊 Kârlılık: NA";
+    }
+
+    const boundedMargin = Math.max(-1, Math.min(1, margin));
+    const label =
+        boundedMargin > 0.20 ? "çok yüksek" :
+        boundedMargin > 0.10 ? "yüksek" :
+        boundedMargin > 0.05 ? "iyi" :
+        boundedMargin > 0 ? "zayıf" :
+        "negatif";
+
+    return `📊 Kârlılık: ${(boundedMargin * 100).toFixed(1)}% (${label})`;
+}
+
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
 }
@@ -523,25 +604,7 @@ async function search() {
         growth > 0 ? "zayıf" :
         "negatif";
     // ------------------ KARLILIK ------------------
-    let isBank = stock.Sektor?.includes("Bank");
-    
-    let marginText = "";
-    
-    if (isBank) {
-        marginText = "📊 Kârlılık: Bankalar için farklı hesaplanır";
-    } else {
-        let margin = stock.Net_Margin || 0;
-        margin = Math.max(-1, Math.min(1, margin));
-    
-        let marginLabel =
-            margin > 0.20 ? "çok yüksek" :
-            margin > 0.10 ? "yüksek" :
-            margin > 0.05 ? "iyi" :
-            margin > 0 ? "zayıf" :
-            "negatif";
-    
-        marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
-    }
+    let marginText = getProfitabilityText(stock);
     // ------------------ SEKTÖREL ------------------
     let marginRel = stock.margin_rel || 1;
 
@@ -644,25 +707,7 @@ function buildTopListItem(s) {
             "düşük";
 
         // ------------------ KARLILIK ------------------
-        let isBank = s.Sektor?.includes("Bank");
-        
-        let marginText = "";
-        
-        if (isBank) {
-            marginText = "📊 Kârlılık: banka modeli";
-        } else {
-            let margin = s.Net_Margin || 0;
-            margin = Math.max(-1, Math.min(1, margin));
-        
-            let marginLabel =
-                margin > 0.20 ? "çok yüksek" :
-                margin > 0.10 ? "yüksek" :
-                margin > 0.05 ? "iyi" :
-                margin > 0 ? "zayıf" :
-                "negatif";
-        
-            marginText = `📊 Kârlılık: ${(margin * 100).toFixed(1)}% (${marginLabel})`;
-        }
+        let marginText = getProfitabilityText(s);
         // ------------------ SEKTÖREL ------------------
         let marginRel = s.margin_rel || 1;
 
@@ -672,6 +717,10 @@ function buildTopListItem(s) {
             marginRel > 0.9 ? "ortalamada" :
             marginRel > 0.7 ? "düşük" :
             "zayıf";
+
+        let lotLine = s._portfolioLot
+            ? `🧾 Lot: ${formatPortfolioQty(s._portfolioLot)}<br>`
+            : "";
 
         return `
             <div class="list-item top-dynamic-item">
@@ -694,6 +743,7 @@ function buildTopListItem(s) {
 
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
+                ${lotLine}
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
@@ -715,6 +765,33 @@ function buildTopListItem(s) {
 
             </div>
         `;
+}
+
+async function showPortfolio() {
+    disableInfiniteMode();
+    try {
+        const holdings = await loadPortfolioHoldings();
+        const sorted = [...data]
+            .filter(s => holdings.has(String(s.Kod || "").toUpperCase()))
+            .map(s => ({ ...s, _portfolioLot: holdings.get(String(s.Kod || "").toUpperCase()) }))
+            .sort((a, b) => (a.Super_Rank ?? 9999) - (b.Super_Rank ?? 9999));
+
+        let html = `<h3>📂 Hisselerim - ${sorted.length} hisse</h3>`;
+        if (!sorted.length) {
+            html += `<div style="color:#94a3b8;">Portföyde açık pozisyon bulunamadı.</div>`;
+        } else {
+            sorted.forEach(s => {
+                html += buildTopListItem(s);
+            });
+        }
+        document.getElementById("toplist").innerHTML = html;
+    } catch (e) {
+        console.error("PORTFOLIO LOAD ERROR:", e);
+        document.getElementById("toplist").innerHTML = `
+            <h3>📂 Hisselerim</h3>
+            <div style="color:#fca5a5;">Portföy dosyası okunamadı.</div>
+        `;
+    }
 }
 
 function renderInfiniteTopChunk() {
@@ -791,7 +868,7 @@ function showRecentBilancos(n = null) {
     now.setHours(0, 0, 0, 0);
 
     const threshold = new Date(now);
-    threshold.setDate(threshold.getDate() - 30);
+    threshold.setDate(threshold.getDate() - 10);
 
     let sorted = [...data]
         .filter(x => parseBilancoDate(x.Bilanco_Tarih))
@@ -803,7 +880,7 @@ function showRecentBilancos(n = null) {
         sorted = sorted.slice(0, Number(n));
     }
 
-    let html = `<h3>📅 Son Bilançolar (30 Gün) - ${sorted.length} hisse</h3>`;
+    let html = `<h3>📅 Son Bilançolar (10 Gün) - ${sorted.length} hisse</h3>`;
 
     sorted.forEach(s => {
         let score = s.Score || 0;
