@@ -764,10 +764,7 @@ function showTop(n) {
         infiniteRenderedCount = 0;
 
         document.getElementById("toplist").innerHTML = `
-            <h3>📊 En Güçlü Hisseler</h3>
-            <div style="margin-bottom:10px; color:#94a3b8;">
-                Kaydırdıkça 10 hisse daha yüklenir. <span id="toplist-count">0 / ${infiniteTopList.length}</span>
-            </div>
+            <h3>📊 Hisseler</h3>
             <div id="toplist-items"></div>
             <div id="toplist-more" style="margin-top:10px; color:#94a3b8;">Daha fazla hisse için aşağı kaydır</div>
         `;
@@ -779,7 +776,7 @@ function showTop(n) {
     disableInfiniteMode();
     sorted = sorted.slice(0,n);
 
-    let html = "<h3>📊 En Güçlü Hisseler</h3>";
+    let html = "<h3>📊 Hisseler</h3>";
 
     sorted.forEach(s => {
         html += buildTopListItem(s);
