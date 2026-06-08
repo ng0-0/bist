@@ -196,6 +196,7 @@ let infiniteRenderedCount = 0;
 const infiniteBatchSize = 10;
 const portfolioSourceBase = "https://dl.dropboxusercontent.com/scl/fi/7cr2pg6akumfs3h0uhn5f/hisselerim.json?rlkey=5fmcv4x84m1cn247gfq2uhi6s";
 let portfolioHoldings = null;
+let pricesLoaded = false;
 
 async function loadData() {
     const source = new URL("https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e");
@@ -215,7 +216,7 @@ async function loadData() {
             console.log("DATA LENGTH:", json.length);
             data = json;
             showTop(10);
-            loadPrices();
+            schedulePriceLoad();
             return;
         }
     } catch (e) {
@@ -223,6 +224,15 @@ async function loadData() {
     }
 
     console.error("No valid data source found");
+}
+
+function schedulePriceLoad() {
+    if (pricesLoaded) return;
+    if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(() => loadPrices(), { timeout: 2000 });
+    } else {
+        setTimeout(() => loadPrices(), 250);
+    }
 }
 
 loadData();
@@ -535,6 +545,7 @@ document.getElementById("symbol").addEventListener("input", function() {
 
 
 async function loadPrices() {
+    if (pricesLoaded) return;
     try {
         let res = await fetch("https://api.fintables.com/radar/", {
             method: "POST",
@@ -550,6 +561,7 @@ async function loadPrices() {
         json.data.forEach(x => {
             livePrices[x.code] = x.close;
         });
+        pricesLoaded = true;
 
     } catch (e) {
         console.error("price error", e);
