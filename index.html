@@ -198,6 +198,7 @@ const portfolioSourceBase = "https://dl.dropboxusercontent.com/scl/fi/7cr2pg6aku
 const dataSourceBase = "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e";
 const dataRefreshWindowMs = 5 * 60 * 1000;
 let portfolioHoldings = null;
+let portfolioWarmStarted = false;
 let pricesLoaded = false;
 
 async function loadData() {
@@ -236,6 +237,26 @@ function schedulePriceLoad() {
         window.requestIdleCallback(() => loadPrices(), { timeout: 2000 });
     } else {
         setTimeout(() => loadPrices(), 250);
+    }
+}
+
+function schedulePortfolioWarmup() {
+    if (portfolioHoldings || portfolioWarmStarted) return;
+    portfolioWarmStarted = true;
+
+    const warm = () => {
+        loadPortfolioHoldings().catch((e) => {
+            console.error("portfolio warmup error", e);
+            portfolioWarmStarted = false;
+        });
+    };
+
+    if ("requestIdleCallback" in window) {
+        setTimeout(() => {
+            window.requestIdleCallback(warm, { timeout: 4000 });
+        }, 1500);
+    } else {
+        setTimeout(warm, 2000);
     }
 }
 
@@ -799,6 +820,10 @@ function buildTopListItem(s) {
 
 async function showPortfolio() {
     disableInfiniteMode();
+    document.getElementById("toplist").innerHTML = `
+        <h3>📂 Hisselerim</h3>
+        <div style="color:#94a3b8;">Portföy yükleniyor...</div>
+    `;
     try {
         const holdings = await loadPortfolioHoldings();
         const sorted = [...data]
@@ -1238,6 +1263,8 @@ window.addEventListener("scroll", () => {
 window.addEventListener("load", () => {
     const params = new URLSearchParams(window.location.search);
     const kod = params.get("kod");
+
+    schedulePortfolioWarmup();
 
     if (kod) {
         document.getElementById("symbol").value = kod;
