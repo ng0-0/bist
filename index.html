@@ -218,7 +218,9 @@ async function loadData() {
             console.log("DATA LENGTH:", json.length);
             data = json;
             showTop(10);
-            schedulePriceLoad();
+            requestAnimationFrame(() => {
+                schedulePriceLoad();
+            });
             return;
         }
     } catch (e) {
