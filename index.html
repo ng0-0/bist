@@ -373,10 +373,11 @@ function getIlkKurumSaklamaText(stock) {
     const ratio = Number(stock?.IlkKurumSaklamaOraniPct);
     const kurum = String(stock?.IlkKurumSaklamaKurum || "").trim();
     if (!Number.isFinite(ratio)) return "🏛️ İlk Kurum Saklama: NA";
+    const color = ratio > 50 ? "#22c55e" : "#e5e7eb";
     if (kurum) {
-        return `🏛️ İlk Kurum Saklama: ${ratio.toFixed(2)}% (${kurum})`;
+        return `🏛️ <span style="color:${color};">İlk Kurum Saklama: ${ratio.toFixed(2)}% (${kurum})</span>`;
     }
-    return `🏛️ İlk Kurum Saklama: ${ratio.toFixed(2)}%`;
+    return `🏛️ <span style="color:${color};">İlk Kurum Saklama: ${ratio.toFixed(2)}%</span>`;
 }
 
 function normalize(score) {
