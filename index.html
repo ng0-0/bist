@@ -369,6 +369,16 @@ function getFiiliDolasimText(stock) {
     return `🔄 <span style="color:${color};">Fiili Dolaşım: ${ratio.toFixed(2)}%</span>`;
 }
 
+function getIlkKurumSaklamaText(stock) {
+    const ratio = Number(stock?.IlkKurumSaklamaOraniPct);
+    const kurum = String(stock?.IlkKurumSaklamaKurum || "").trim();
+    if (!Number.isFinite(ratio)) return "🏛️ İlk Kurum Saklama: NA";
+    if (kurum) {
+        return `🏛️ İlk Kurum Saklama: ${ratio.toFixed(2)}% (${kurum})`;
+    }
+    return `🏛️ İlk Kurum Saklama: ${ratio.toFixed(2)}%`;
+}
+
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
 }
@@ -660,6 +670,7 @@ async function search() {
             💰 FK: ${displayFk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${displayPdDd?.toFixed(2) ?? "NA"}<br>
             ${getFiiliDolasimText(stock)}<br>
+            ${getIlkKurumSaklamaText(stock)}<br>
 
             ${marginText}<br>
             
@@ -774,6 +785,7 @@ function buildTopListItem(s) {
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
+                ${getIlkKurumSaklamaText(s)}<br>
 
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
@@ -939,6 +951,7 @@ function showRecentBilancos(n = null) {
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
+                ${getIlkKurumSaklamaText(s)}<br>
                 🧠 Score: ${scorePct.toFixed(0)}<br>
 
                 <div style="margin-top:6px; color:#94a3b8;">
@@ -1003,6 +1016,7 @@ function showBanks(n) {
                 🏦 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
+                ${getIlkKurumSaklamaText(s)}<br>
                 📊 ROE: ${(roe * 100).toFixed(1)}% (${roeLabel})<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
@@ -1093,6 +1107,7 @@ function showLargeCaps(limit = 50, poolSize = 100) {
                 🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
+                ${getIlkKurumSaklamaText(s)}<br>
                 🏦 Piyasa Değeri: ${formatMarketCap(s._marketCap)}<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
