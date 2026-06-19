@@ -415,8 +415,24 @@ function getTakasAnalizText(stock) {
     const deltaPct = strongest.pct;
     if (Math.abs(deltaPct) < 0.01) return "📦 Takas: sabit";
 
+    let text = "sabit";
+    let color = "#e5e7eb";
+
+    if (deltaPct > 0.2) {
+        text = "kurum topluyor gibi";
+        color = "#22c55e";
+    } else if (deltaPct > 0) {
+        text = "hafif pozitif";
+    } else if (deltaPct < -0.2) {
+        text = "kurum çıkışı var";
+        color = "#ef4444";
+    } else if (deltaPct < 0) {
+        text = "hafif negatif";
+        color = "#ef4444";
+    }
+
     const sign = deltaPct > 0 ? "+" : "-";
-    return `📦 Takas: (${sign}%${Math.abs(deltaPct).toFixed(2)})`;
+    return `📦 <span style="color:${color};">Takas: ${text} (${sign}%${Math.abs(deltaPct).toFixed(2)})</span>`;
 }
 
 function normalize(score) {
