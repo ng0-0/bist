@@ -380,6 +380,45 @@ function getIlkKurumSaklamaText(stock) {
     return `🏛️ <span style="color:${color};">İlk Kurum Saklama: ${ratio.toFixed(2)}%</span>`;
 }
 
+function getTakasAnalizText(stock) {
+    const haftalik = Number(stock?.IlkKurumHaftalikDegisim);
+    const aylik = Number(stock?.IlkKurumAylikDegisim);
+    const gunluk = Number(stock?.IlkKurumGunlukDegisim);
+    const sonLot = Number(stock?.IlkKurumSonLot);
+    const currentRatio = Number(stock?.IlkKurumSaklamaOraniPct);
+
+    if (![haftalik, aylik, gunluk].some(Number.isFinite)) {
+        return "📦 Takas: NA";
+    }
+
+    if (!(Number.isFinite(sonLot) && sonLot > 0 && Number.isFinite(currentRatio) && currentRatio > 0)) {
+        return "📦 Takas: NA";
+    }
+
+    const estimatedTotalLot = sonLot / (currentRatio / 100);
+    const periods = [
+        { label: "günlük", raw: gunluk },
+        { label: "haftalık", raw: haftalik },
+        { label: "aylık", raw: aylik }
+    ]
+        .filter(x => Number.isFinite(x.raw) && x.raw !== 0)
+        .map(x => ({
+            ...x,
+            pct: (x.raw / estimatedTotalLot) * 100,
+            absPct: Math.abs((x.raw / estimatedTotalLot) * 100)
+        }))
+        .sort((a, b) => b.absPct - a.absPct);
+
+    if (!periods.length) return "📦 Takas: sabit";
+
+    const strongest = periods[0];
+    const deltaPct = strongest.pct;
+    if (Math.abs(deltaPct) < 0.01) return "📦 Takas: sabit";
+
+    const sign = deltaPct > 0 ? "+" : "-";
+    return `📦 Takas: (${sign}%${Math.abs(deltaPct).toFixed(2)})`;
+}
+
 function normalize(score) {
     return Math.max(0, Math.min(100, score * 100));
 }
@@ -672,6 +711,7 @@ async function search() {
             PD/DD: ${displayPdDd?.toFixed(2) ?? "NA"}<br>
             ${getFiiliDolasimText(stock)}<br>
             ${getIlkKurumSaklamaText(stock)}<br>
+            ${getTakasAnalizText(stock)}<br>
 
             ${marginText}<br>
             
@@ -765,10 +805,6 @@ function buildTopListItem(s) {
             marginRel > 0.7 ? "düşük" :
             "zayıf";
 
-        let lotLine = s._portfolioLot
-            ? `🧾 Lot: ${formatPortfolioQty(s._portfolioLot)}<br>`
-            : "";
-
         return `
             <div class="list-item top-dynamic-item">
 
@@ -787,10 +823,10 @@ function buildTopListItem(s) {
                 PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
                 ${getIlkKurumSaklamaText(s)}<br>
+                ${getTakasAnalizText(s)}<br>
 
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
-                ${lotLine}
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
@@ -953,6 +989,7 @@ function showRecentBilancos(n = null) {
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
                 ${getIlkKurumSaklamaText(s)}<br>
+                ${getTakasAnalizText(s)}<br>
                 🧠 Score: ${scorePct.toFixed(0)}<br>
 
                 <div style="margin-top:6px; color:#94a3b8;">
@@ -1018,6 +1055,7 @@ function showBanks(n) {
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
                 ${getIlkKurumSaklamaText(s)}<br>
+                ${getTakasAnalizText(s)}<br>
                 📊 ROE: ${(roe * 100).toFixed(1)}% (${roeLabel})<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
@@ -1109,6 +1147,7 @@ function showLargeCaps(limit = 50, poolSize = 100) {
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
                 ${getIlkKurumSaklamaText(s)}<br>
+                ${getTakasAnalizText(s)}<br>
                 🏦 Piyasa Değeri: ${formatMarketCap(s._marketCap)}<br>
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
 
