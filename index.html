@@ -784,9 +784,7 @@ async function search() {
         </div>
     `;
 }
-function buildTopListItem(s) {
-
-        // ------------------ SCORE ------------------
+function buildTopListItem(s, options = {}) {
         let score = s.Score || 0;
         let scoreClamped = Math.min(score, 1);
         let scorePct = scoreClamped * 100;
@@ -800,20 +798,8 @@ function buildTopListItem(s) {
             "zayıf";
 
         let cap = s.SmallCap ? "⚠️" : "";
-
-        // ------------------ ISTIKRAR ------------------
-        let istikrar = 1 - (s.volatilite || 0);
-
-        let istikrarLabel =
-            istikrar > 0.7 ? "yüksek" :
-            istikrar > 0.4 ? "orta" :
-            "düşük";
-
-        // ------------------ KARLILIK ------------------
         let marginText = getProfitabilityText(s);
-        // ------------------ SEKTÖREL ------------------
         let marginRel = s.margin_rel || 1;
-
         let marginRelLabel =
             marginRel > 1.5 ? "çok iyi" :
             marginRel > 1.1 ? "daha yüksek" :
@@ -821,11 +807,18 @@ function buildTopListItem(s) {
             marginRel > 0.7 ? "düşük" :
             "zayıf";
 
+        const titlePrefix = options.titlePrefix ? `${options.titlePrefix} ` : `#${s.Super_Rank ?? "-"} `;
+        const sectorIcon = options.sectorIcon || "🏭";
+        const sectorLabel = options.sectorLabel || (s.Sektor?.replace(/\n/g, " ") ?? "NA");
+        const extraLines = options.extraLines || [];
+        const comment = options.comment ?? s.yorum ?? "";
+        const showDetail = options.showDetail !== false;
+
         return `
             <div class="list-item top-dynamic-item">
 
                 <b>
-                #${s.Super_Rank ?? "-"} 
+                ${titlePrefix}
                 <span class="hisse-link"
                       onclick="secHisse('${s.Kod}')">
                     ${s.Kod}
@@ -833,7 +826,7 @@ function buildTopListItem(s) {
                 ${cap}
                 </b><br>
 
-                🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
+                ${sectorIcon} ${sectorLabel}<br>
 
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
@@ -843,24 +836,25 @@ function buildTopListItem(s) {
 
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
+                ${extraLines.map(line => `${line}<br>`).join("")}
                 🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
-                📌 ${s.yorum ?? ""}
+                📌 ${comment}
                 </div>
                 
                 <div class="bar-container">
                     <div class="bar" style="width:${percent}%"></div>
                 </div>
 
-                <button onclick="toggleDetail('${s.Kod}')">Çeyreklik Kârlar</button>
+                ${showDetail ? `<button onclick="toggleDetail('${s.Kod}')">Çeyreklik Kârlar</button>
 
                 <div id="d-${s.Kod}" style="display:none; margin-top:6px;">
                     Q1: ${s.NetKar_Q1?.toFixed(2) ?? "-"} MTL<br>
                     Q2: ${s.NetKar_Q2?.toFixed(2) ?? "-"} MTL<br>
                     Q3: ${s.NetKar_Q3?.toFixed(2) ?? "-"} MTL<br>
                     Q4: ${s.NetKar_Q4?.toFixed(2) ?? "-"} MTL
-                </div>
+                </div>` : ""}
 
             </div>
         `;
@@ -986,37 +980,10 @@ function showRecentBilancos(n = null) {
     let html = `<h3>📅 Son Bilançolar (10 Gün) - ${sorted.length} hisse</h3>`;
 
     sorted.forEach(s => {
-        let score = s.Score || 0;
-        let scoreClamped = Math.min(score, 1);
-        let scorePct = scoreClamped * 100;
-        let percent = scorePct;
-
-        html += `
-            <div class="list-item">
-                <b>
-                ${formatBilancoDate(s.Bilanco_Tarih)} 
-                <span class="hisse-link"
-                      onclick="secHisse('${s.Kod}')">
-                    ${s.Kod}
-                </span>
-                </b><br>
-
-                🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
-                💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
-                ${getFiiliDolasimText(s)}<br>
-                ${getIlkKurumSaklamaText(s)}<br>
-                ${getTakasAnalizText(s)}<br>
-                🧠 Score: ${scorePct.toFixed(0)}<br>
-
-                <div style="margin-top:6px; color:#94a3b8;">
-                📌 ${s.yorum ?? ""}
-                </div>
-
-                <div class="bar-container">
-                    <div class="bar" style="width:${percent}%"></div>
-                </div>
-            </div>
-        `;
+        html += buildTopListItem(s, {
+            titlePrefix: formatBilancoDate(s.Bilanco_Tarih),
+            extraLines: [`📅 Bilanço tarihi: ${formatBilancoDate(s.Bilanco_Tarih)}`]
+        });
     });
 
     document.getElementById("toplist").innerHTML = html;
@@ -1037,18 +1004,6 @@ function showBanks(n) {
     let html = "<h3>🏦 Bankacılık Hisseleri</h3>";
 
     sorted.forEach(s => {
-        let score = s.Score || 0;
-        let scoreClamped = Math.min(score, 1);
-        let scorePct = scoreClamped * 100;
-        let percent = scorePct;
-
-        let scoreLabel =
-            scoreClamped > 0.80 ? "elite" :
-            scoreClamped > 0.70 ? "güçlü" :
-            scoreClamped > 0.60 ? "iyi" :
-            scoreClamped > 0.45 ? "orta" :
-            "zayıf";
-
         let roe = Number(s.ROE || 0);
         let roeLabel =
             roe > 0.20 ? "çok güçlü" :
@@ -1056,34 +1011,10 @@ function showBanks(n) {
             roe > 0.10 ? "iyi" :
             roe > 0 ? "zayıf" :
             "negatif";
-
-        html += `
-            <div class="list-item">
-                <b>
-                #${s.Super_Rank ?? "-"} 
-                <span class="hisse-link"
-                      onclick="secHisse('${s.Kod}')">
-                    ${s.Kod}
-                </span>
-                </b><br>
-
-                🏦 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
-                💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
-                ${getFiiliDolasimText(s)}<br>
-                ${getIlkKurumSaklamaText(s)}<br>
-                ${getTakasAnalizText(s)}<br>
-                📊 ROE: ${(roe * 100).toFixed(1)}% (${roeLabel})<br>
-                🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
-
-                <div style="margin-top:6px; color:#94a3b8;">
-                📌 ${s.yorum ?? ""}
-                </div>
-
-                <div class="bar-container">
-                    <div class="bar" style="width:${percent}%"></div>
-                </div>
-            </div>
-        `;
+        html += buildTopListItem(s, {
+            sectorIcon: "🏦",
+            extraLines: [`📊 ROE: ${(roe * 100).toFixed(1)}% (${roeLabel})`]
+        });
     });
 
     document.getElementById("toplist").innerHTML = html;
@@ -1137,45 +1068,9 @@ function showLargeCaps(limit = 50, poolSize = 100) {
                 </div>`;
 
     sorted.forEach(s => {
-        let score = s.Score || 0;
-        let scoreClamped = Math.min(score, 1);
-        let scorePct = scoreClamped * 100;
-        let percent = scorePct;
-
-        let scoreLabel =
-            scoreClamped > 0.80 ? "elite" :
-            scoreClamped > 0.70 ? "güçlü" :
-            scoreClamped > 0.60 ? "iyi" :
-            scoreClamped > 0.45 ? "orta" :
-            "zayıf";
-
-        html += `
-            <div class="list-item">
-                <b>
-                #${s.Super_Rank ?? "-"}
-                <span class="hisse-link"
-                      onclick="secHisse('${s.Kod}')">
-                    ${s.Kod}
-                </span>
-                </b><br>
-
-                🏭 ${s.Sektor?.replace(/\n/g, " ") ?? "NA"}<br>
-                💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
-                ${getFiiliDolasimText(s)}<br>
-                ${getIlkKurumSaklamaText(s)}<br>
-                ${getTakasAnalizText(s)}<br>
-                🏦 Piyasa Değeri: ${formatMarketCap(s._marketCap)}<br>
-                🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
-
-                <div style="margin-top:6px; color:#94a3b8;">
-                📌 ${s.yorum ?? ""}
-                </div>
-
-                <div class="bar-container">
-                    <div class="bar" style="width:${percent}%"></div>
-                </div>
-            </div>
-        `;
+        html += buildTopListItem(s, {
+            extraLines: [`🏦 Piyasa Değeri: ${formatMarketCap(s._marketCap)}`]
+        });
     });
 
     document.getElementById("toplist").innerHTML = html;
@@ -1211,6 +1106,8 @@ function showByAnalyst() {
     let sorted = [...data]
         .filter(x => x.AnalistSayisi || x.ModelPortfoy || x.PotansiyelGetiri)
         .sort((a, b) => {
+            const analystDiff = (Number(b.AnalistSayisi) || 0) - (Number(a.AnalistSayisi) || 0);
+            if (analystDiff !== 0) return analystDiff;
             const scoreDiff = (Number(b.Score) || 0) - (Number(a.Score) || 0);
             if (scoreDiff !== 0) return scoreDiff;
             return smartScore(b) - smartScore(a);
@@ -1220,35 +1117,13 @@ function showByAnalyst() {
     let html = "<h3>🧠 Smart Para (Analist + Model + Getiri)</h3>";
 
     sorted.forEach(s => {
-
-        let percent = normalize(Math.min(s.Score || 0, 1));
-        let cap = s.SmallCap ? "⚠️" : "";
-        let score = s.Score || 0;
-
-        html += `
-            <div class="list-item">
-
-                <b>
-                #${s.Super_Rank ?? "-"} 
-                <span class="hisse-link"
-                      onclick="secHisse('${s.Kod}')">
-                    ${s.Kod}
-                </span>
-                ${cap}
-                </b><br>
-
-                👨‍💼 ${formatCountWithDelta(s.AnalistSayisi, s.AnalistDelta)} | 
-                📦 ${s.ModelPortfoy || 0} | 
-                🎯 ${Number(s.PotansiyelGetiri || 0).toFixed(1)}%<br>
-
-                🧠 Skor: ${normalize(Math.min(score, 1)).toFixed(0)}<br>
-
-                <div class="bar-container">
-                    <div class="bar" style="width:${percent}%"></div>
-                </div>
-
-            </div>
-        `;
+        html += buildTopListItem(s, {
+            extraLines: [
+                `👨‍💼 Analist: ${formatCountWithDelta(s.AnalistSayisi, s.AnalistDelta)}`,
+                `📦 Model Portföy: ${s.ModelPortfoy || 0}`,
+                `🎯 Potansiyel Getiri: ${Number(s.PotansiyelGetiri || 0).toFixed(1)}%`
+            ]
+        });
     });
 
     document.getElementById("toplist").innerHTML = html;
