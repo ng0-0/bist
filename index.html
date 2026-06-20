@@ -166,6 +166,7 @@ button {
     <button onclick="showRecentBilancos()">Son Bilançolar</button>
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
     <button onclick="showByTakas()">📦 Takas Sıralaması</button>
+    <button onclick="showZenginlik()">💸 Zenginlik</button>
 </div>
 
 <div class="input-row">
@@ -369,7 +370,7 @@ function getFiiliDolasimText(stock) {
     const ratio = Number(stock?.FiiliDolasimOranPct);
     if (!Number.isFinite(ratio)) return "🔄 Fiili Dolaşım: NA";
     let color = "#e5e7eb";
-    if (ratio < 25) {
+    if (isFiiliDolasimGreen(stock)) {
         color = "#22c55e";
     } else if (ratio > 60) {
         color = "#ef4444";
@@ -381,7 +382,7 @@ function getIlkKurumSaklamaText(stock) {
     const ratio = Number(stock?.IlkKurumSaklamaOraniPct);
     const kurum = String(stock?.IlkKurumSaklamaKurum || "").trim();
     if (!Number.isFinite(ratio)) return "🏛️ İlk Kurum Saklama: NA";
-    const color = ratio > 50 ? "#22c55e" : "#e5e7eb";
+    const color = isIlkKurumSaklamaGreen(stock) ? "#22c55e" : "#e5e7eb";
     if (kurum) {
         return `🏛️ <span style="color:${color};">İlk Kurum Saklama: ${ratio.toFixed(2)}% (${kurum})</span>`;
     }
@@ -397,7 +398,7 @@ function getTakasAnalizText(stock) {
     let text = "sabit";
     let color = "#e5e7eb";
 
-    if (deltaPct > 0.2) {
+    if (isTakasGreen(stock)) {
         text = "kurum topluyor gibi";
         color = "#22c55e";
     } else if (deltaPct > 0) {
@@ -412,6 +413,21 @@ function getTakasAnalizText(stock) {
 
     const sign = deltaPct > 0 ? "+" : "-";
     return `📦 <span style="color:${color};">Takas: ${text} (${sign}%${Math.abs(deltaPct).toFixed(2)} ${strongest.label})</span>`;
+}
+
+function isFiiliDolasimGreen(stock) {
+    const ratio = Number(stock?.FiiliDolasimOranPct);
+    return Number.isFinite(ratio) && ratio < 25;
+}
+
+function isIlkKurumSaklamaGreen(stock) {
+    const ratio = Number(stock?.IlkKurumSaklamaOraniPct);
+    return Number.isFinite(ratio) && ratio > 50;
+}
+
+function isTakasGreen(stock) {
+    const strongest = getStrongestTakasChange(stock);
+    return strongest && Number.isFinite(strongest.pct) && strongest.pct > 0.2;
 }
 
 function getStrongestTakasChange(stock) {
@@ -1152,6 +1168,31 @@ function showByTakas() {
         }));
 
     startInfiniteList("takas-infinite", "📦 Takas Sıralaması", sorted);
+}
+
+function showZenginlik() {
+    disableInfiniteMode();
+
+    let sorted = [...data]
+        .filter(s =>
+            (Number(s.Score) || 0) > 0.70 &&
+            isFiiliDolasimGreen(s) &&
+            isIlkKurumSaklamaGreen(s) &&
+            isTakasGreen(s)
+        )
+        .sort((a, b) => {
+            const scoreDiff = (Number(b.Score) || 0) - (Number(a.Score) || 0);
+            if (scoreDiff !== 0) return scoreDiff;
+            return (Number(b.PotansiyelGetiri) || 0) - (Number(a.PotansiyelGetiri) || 0);
+        });
+
+    const intro = `
+        <div style="margin-bottom:10px; color:#94a3b8;">
+            Fiili dolaşım, ilk kurum saklama ve takas sinyali yeşil olan; skoru 70 üstü hisseler.
+        </div>
+    `;
+
+    startInfiniteList("zenginlik-infinite", "💸 Zenginlik", sorted, intro);
 }
 
 window.addEventListener("scroll", () => {
