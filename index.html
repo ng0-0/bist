@@ -47,6 +47,10 @@ button {
     margin-bottom: 10px;
 }
 
+.top-buttons + .top-buttons {
+    margin-top: -2px;
+}
+
 .top-buttons button {
     flex: 1;
     background: #1e40af;
@@ -155,9 +159,13 @@ button {
     <button onclick="showTop(10)">Tüm Hisseler</button>
     <button onclick="showPortfolio()">Hisselerim</button>
     <button onclick="showLargeCaps(50, 100)">Güçlü Büyükler</button>
-    <button onclick="showRecentBilancos()">Son Bilançolar</button>
     <button onclick="showBanks(20)">Bankalar</button>
+</div>
+
+<div class="top-buttons">
+    <button onclick="showRecentBilancos()">Son Bilançolar</button>
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
+    <button onclick="showByTakas()">📦 Takas Sıralaması</button>
 </div>
 
 <div class="input-row">
@@ -381,37 +389,8 @@ function getIlkKurumSaklamaText(stock) {
 }
 
 function getTakasAnalizText(stock) {
-    const haftalik = Number(stock?.IlkKurumHaftalikDegisim);
-    const aylik = Number(stock?.IlkKurumAylikDegisim);
-    const gunluk = Number(stock?.IlkKurumGunlukDegisim);
-    const sonLot = Number(stock?.IlkKurumSonLot);
-    const currentRatio = Number(stock?.IlkKurumSaklamaOraniPct);
-
-    if (![haftalik, aylik, gunluk].some(Number.isFinite)) {
-        return "📦 Takas: NA";
-    }
-
-    if (!(Number.isFinite(sonLot) && sonLot > 0 && Number.isFinite(currentRatio) && currentRatio > 0)) {
-        return "📦 Takas: NA";
-    }
-
-    const estimatedTotalLot = sonLot / (currentRatio / 100);
-    const periods = [
-        { label: "günlük", raw: gunluk },
-        { label: "haftalık", raw: haftalik },
-        { label: "aylık", raw: aylik }
-    ]
-        .filter(x => Number.isFinite(x.raw) && x.raw !== 0)
-        .map(x => ({
-            ...x,
-            pct: (x.raw / estimatedTotalLot) * 100,
-            absPct: Math.abs((x.raw / estimatedTotalLot) * 100)
-        }))
-        .sort((a, b) => b.absPct - a.absPct);
-
-    if (!periods.length) return "📦 Takas: sabit";
-
-    const strongest = periods[0];
+    const strongest = getStrongestTakasChange(stock);
+    if (!strongest) return "📦 Takas: NA";
     const deltaPct = strongest.pct;
     if (Math.abs(deltaPct) < 0.01) return "📦 Takas: sabit";
 
@@ -433,6 +412,33 @@ function getTakasAnalizText(stock) {
 
     const sign = deltaPct > 0 ? "+" : "-";
     return `📦 <span style="color:${color};">Takas: ${text} (${sign}%${Math.abs(deltaPct).toFixed(2)} ${strongest.label})</span>`;
+}
+
+function getStrongestTakasChange(stock) {
+    const haftalik = Number(stock?.IlkKurumHaftalikDegisim);
+    const aylik = Number(stock?.IlkKurumAylikDegisim);
+    const gunluk = Number(stock?.IlkKurumGunlukDegisim);
+    const sonLot = Number(stock?.IlkKurumSonLot);
+    const currentRatio = Number(stock?.IlkKurumSaklamaOraniPct);
+
+    if (![haftalik, aylik, gunluk].some(Number.isFinite)) return null;
+    if (!(Number.isFinite(sonLot) && sonLot > 0 && Number.isFinite(currentRatio) && currentRatio > 0)) return null;
+
+    const estimatedTotalLot = sonLot / (currentRatio / 100);
+    const periods = [
+        { label: "günlük", raw: gunluk },
+        { label: "haftalık", raw: haftalik },
+        { label: "aylık", raw: aylik }
+    ]
+        .filter(x => Number.isFinite(x.raw) && x.raw !== 0)
+        .map(x => ({
+            ...x,
+            pct: (x.raw / estimatedTotalLot) * 100,
+            absPct: Math.abs((x.raw / estimatedTotalLot) * 100)
+        }))
+        .sort((a, b) => b.absPct - a.absPct);
+
+    return periods[0] || null;
 }
 
 function normalize(score) {
@@ -1128,6 +1134,36 @@ function showByAnalyst() {
 
     document.getElementById("toplist").innerHTML = html;
 }
+
+function showByTakas() {
+    disableInfiniteMode();
+
+    let sorted = [...data]
+        .map(x => {
+            const takas = getStrongestTakasChange(x);
+            return { ...x, _takas: takas };
+        })
+        .filter(x => x._takas && Number.isFinite(x._takas.absPct) && x._takas.absPct > 0)
+        .sort((a, b) => {
+            const takasDiff = (b._takas?.absPct || 0) - (a._takas?.absPct || 0);
+            if (takasDiff !== 0) return takasDiff;
+            return (Number(b.Score) || 0) - (Number(a.Score) || 0);
+        })
+        .slice(0, 50);
+
+    let html = "<h3>📦 Takas Sıralaması</h3>";
+
+    sorted.forEach(s => {
+        html += buildTopListItem(s, {
+            extraLines: [
+                `🏛️ En Güçlü Takas Değişimi: ${s._takas.pct > 0 ? "+" : "-"}%${Math.abs(s._takas.pct).toFixed(2)} ${s._takas.label}`
+            ]
+        });
+    });
+
+    document.getElementById("toplist").innerHTML = html;
+}
+
 window.addEventListener("scroll", () => {
     if (activeListMode !== "top-infinite") return;
 
