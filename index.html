@@ -432,7 +432,7 @@ function getTakasAnalizText(stock) {
     }
 
     const sign = deltaPct > 0 ? "+" : "-";
-    return `📦 <span style="color:${color};">Takas: ${text} (${sign}%${Math.abs(deltaPct).toFixed(2)})</span>`;
+    return `📦 <span style="color:${color};">Takas: ${text} (${sign}%${Math.abs(deltaPct).toFixed(2)} ${strongest.label})</span>`;
 }
 
 function normalize(score) {
