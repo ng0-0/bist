@@ -184,7 +184,7 @@ button {
 let data = [];
 let livePrices = {};
 let activeListMode = null;
-let infiniteTopList = [];
+let infiniteListItems = [];
 let infiniteRenderedCount = 0;
 const infiniteBatchSize = 10;
 const portfolioSourceBase = "https://dl.dropboxusercontent.com/scl/fi/7cr2pg6akumfs3h0uhn5f/hisselerim.json?rlkey=5fmcv4x84m1cn247gfq2uhi6s";
@@ -571,7 +571,7 @@ function getMomentumLabel(m) {
 
 function disableInfiniteMode() {
     activeListMode = null;
-    infiniteTopList = [];
+    infiniteListItems = [];
     infiniteRenderedCount = 0;
 }
 
@@ -816,7 +816,7 @@ function buildTopListItem(s, options = {}) {
         const titlePrefix = options.titlePrefix ? `${options.titlePrefix} ` : `#${s.Super_Rank ?? "-"} `;
         const sectorIcon = options.sectorIcon || "🏭";
         const sectorLabel = options.sectorLabel || (s.Sektor?.replace(/\n/g, " ") ?? "NA");
-        const extraLines = options.extraLines || [];
+        const extraLines = options.extraLines || s._extraLines || [];
         const comment = options.comment ?? s.yorum ?? "";
         const showDetail = options.showDetail !== false;
 
@@ -898,7 +898,7 @@ async function showPortfolio() {
 }
 
 function renderInfiniteTopChunk() {
-    const nextItems = infiniteTopList.slice(
+    const nextItems = infiniteListItems.slice(
         infiniteRenderedCount,
         infiniteRenderedCount + infiniteBatchSize
     );
@@ -916,17 +916,27 @@ function renderInfiniteTopChunk() {
 
     infiniteRenderedCount += nextItems.length;
 
-    const countEl = document.getElementById("toplist-count");
-    if (countEl) {
-        countEl.textContent = `${infiniteRenderedCount} / ${infiniteTopList.length}`;
-    }
-
-    if (infiniteRenderedCount >= infiniteTopList.length) {
+    if (infiniteRenderedCount >= infiniteListItems.length) {
         const moreEl = document.getElementById("toplist-more");
         if (moreEl) {
             moreEl.textContent = "Tüm hisseler yüklendi";
         }
     }
+}
+
+function startInfiniteList(mode, title, items, introHtml = "") {
+    activeListMode = mode;
+    infiniteListItems = items;
+    infiniteRenderedCount = 0;
+
+    document.getElementById("toplist").innerHTML = `
+        <h3>${title}</h3>
+        ${introHtml}
+        <div id="toplist-items"></div>
+        <div id="toplist-more" style="margin-top:10px; color:#94a3b8;">Daha fazla hisse için aşağı kaydır</div>
+    `;
+
+    renderInfiniteTopChunk();
 }
 
 /* top list */
@@ -939,17 +949,7 @@ function showTop(n) {
         });
 
     if (n === 10) {
-        activeListMode = "top-infinite";
-        infiniteTopList = sorted;
-        infiniteRenderedCount = 0;
-
-        document.getElementById("toplist").innerHTML = `
-            <h3>📊 Hisseler</h3>
-            <div id="toplist-items"></div>
-            <div id="toplist-more" style="margin-top:10px; color:#94a3b8;">Daha fazla hisse için aşağı kaydır</div>
-        `;
-
-        renderInfiniteTopChunk();
+        startInfiniteList("top-infinite", "📊 Hisseler", sorted);
         return;
     }
 
@@ -1118,21 +1118,16 @@ function showByAnalyst() {
             if (scoreDiff !== 0) return scoreDiff;
             return smartScore(b) - smartScore(a);
         })
-        .slice(0, 50);
-
-    let html = "<h3>🧠 Smart Para (Analist + Model + Getiri)</h3>";
-
-    sorted.forEach(s => {
-        html += buildTopListItem(s, {
-            extraLines: [
+        .map(s => ({
+            ...s,
+            _extraLines: [
                 `👨‍💼 Analist: ${formatCountWithDelta(s.AnalistSayisi, s.AnalistDelta)}`,
                 `📦 Model Portföy: ${s.ModelPortfoy || 0}`,
                 `🎯 Potansiyel Getiri: ${Number(s.PotansiyelGetiri || 0).toFixed(1)}%`
             ]
-        });
-    });
+        }));
 
-    document.getElementById("toplist").innerHTML = html;
+    startInfiniteList("analyst-infinite", "🧠 Smart Para (Analist + Model + Getiri)", sorted);
 }
 
 function showByTakas() {
@@ -1149,23 +1144,18 @@ function showByTakas() {
             if (takasDiff !== 0) return takasDiff;
             return (Number(b.Score) || 0) - (Number(a.Score) || 0);
         })
-        .slice(0, 50);
-
-    let html = "<h3>📦 Takas Sıralaması</h3>";
-
-    sorted.forEach(s => {
-        html += buildTopListItem(s, {
-            extraLines: [
+        .map(s => ({
+            ...s,
+            _extraLines: [
                 `🏛️ En Güçlü Takas Değişimi: ${s._takas.pct > 0 ? "+" : "-"}%${Math.abs(s._takas.pct).toFixed(2)} ${s._takas.label}`
             ]
-        });
-    });
+        }));
 
-    document.getElementById("toplist").innerHTML = html;
+    startInfiniteList("takas-infinite", "📦 Takas Sıralaması", sorted);
 }
 
 window.addEventListener("scroll", () => {
-    if (activeListMode !== "top-infinite") return;
+    if (!activeListMode || !activeListMode.includes("infinite")) return;
 
     const scrollPosition = window.innerHeight + window.scrollY;
     const triggerPoint = document.body.offsetHeight - 300;
