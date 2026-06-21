@@ -166,7 +166,7 @@ button {
     <button onclick="showRecentBilancos()">Son Bilançolar</button>
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
     <button onclick="showByTakas()">📦 Takas Sıralaması</button>
-    <button onclick="showZenginlik()">💸 Zenginlik</button>
+    <button onclick="showZenginlik()">💸 Öne Çıkanlar</button>
 </div>
 
 <div class="input-row">
@@ -591,6 +591,11 @@ function disableInfiniteMode() {
     infiniteRenderedCount = 0;
 }
 
+function clearResultCard() {
+    const resultEl = document.getElementById("result");
+    if (resultEl) resultEl.innerHTML = "";
+}
+
 function formatCountWithDelta(baseValue, deltaValue) {
     const current = Number(baseValue) || 0;
     const delta = Number(deltaValue) || 0;
@@ -811,6 +816,8 @@ function buildTopListItem(s, options = {}) {
         let scoreClamped = Math.min(score, 1);
         let scorePct = scoreClamped * 100;
         let percent = scorePct;
+        let karar = normalizeKararLabel(s.karar || "NÖTR");
+        let color = getColor(karar);
 
         let scoreLabel =
             scoreClamped > 0.80 ? "elite" :
@@ -859,7 +866,14 @@ function buildTopListItem(s, options = {}) {
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
                 ${extraLines.map(line => `${line}<br>`).join("")}
-                🧠 Score: ${scorePct.toFixed(0)} (${scoreLabel})<br>
+                <div class="score-row">
+                    <div class="big ${color}">
+                        Score: ${scorePct.toFixed(0)} (${scoreLabel})
+                    </div>
+                    <div class="signal ${color}-bg">
+                        ${getSignal(karar)}
+                    </div>
+                </div>
                 
                 <div style="margin-top:6px; color:#94a3b8;">
                 📌 ${comment}
@@ -884,6 +898,7 @@ function buildTopListItem(s, options = {}) {
 
 async function showPortfolio() {
     disableInfiniteMode();
+    clearResultCard();
     document.getElementById("toplist").innerHTML = `
         <h3>📂 Hisselerim</h3>
         <div style="color:#94a3b8;">Portföy yükleniyor...</div>
@@ -957,6 +972,7 @@ function startInfiniteList(mode, title, items, introHtml = "") {
 
 /* top list */
 function showTop(n) {
+    clearResultCard();
     let sorted = [...data]
         .sort((a,b)=> {
             let ra = a.Super_Rank ?? 9999;
@@ -983,6 +999,7 @@ function showTop(n) {
 
 function showRecentBilancos(n = null) {
     disableInfiniteMode();
+    clearResultCard();
     const now = new Date();
     now.setHours(0, 0, 0, 0);
 
@@ -1013,6 +1030,7 @@ function showRecentBilancos(n = null) {
 
 function showBanks(n) {
     disableInfiniteMode();
+    clearResultCard();
 
     let sorted = [...data]
         .filter(x => x.Sektor?.includes("Bank"))
@@ -1068,6 +1086,7 @@ function getMarketCap(stock) {
 
 function showLargeCaps(limit = 50, poolSize = 100) {
     disableInfiniteMode();
+    clearResultCard();
     const largestPool = [...data]
         .map(x => ({ ...x, _marketCap: getMarketCap(x) }))
         .filter(x => Number.isFinite(Number(x._marketCap)) && Number(x._marketCap) > 0)
@@ -1124,6 +1143,7 @@ function smartScore(x) {
 
 function showByAnalyst() {
     disableInfiniteMode();
+    clearResultCard();
 
     let sorted = [...data]
         .filter(x => x.AnalistSayisi || x.ModelPortfoy || x.PotansiyelGetiri)
@@ -1148,6 +1168,7 @@ function showByAnalyst() {
 
 function showByTakas() {
     disableInfiniteMode();
+    clearResultCard();
 
     let sorted = [...data]
         .map(x => {
@@ -1172,10 +1193,10 @@ function showByTakas() {
 
 function showZenginlik() {
     disableInfiniteMode();
+    clearResultCard();
 
     let sorted = [...data]
         .filter(s =>
-            (Number(s.Score) || 0) > 0.70 &&
             isFiiliDolasimGreen(s) &&
             isIlkKurumSaklamaGreen(s) &&
             isTakasGreen(s)
@@ -1188,11 +1209,11 @@ function showZenginlik() {
 
     const intro = `
         <div style="margin-bottom:10px; color:#94a3b8;">
-            Fiili dolaşım, ilk kurum saklama ve takas sinyali yeşil olan; skoru 70 üstü hisseler.
+            Fiili dolaşım, ilk kurum saklama ve takas sinyali yeşil olan hisseler.
         </div>
     `;
 
-    startInfiniteList("zenginlik-infinite", "💸 Zenginlik", sorted, intro);
+    startInfiniteList("zenginlik-infinite", "💸 Öne Çıkanlar", sorted, intro);
 }
 
 window.addEventListener("scroll", () => {
