@@ -579,6 +579,58 @@ function formatBilancoDate(raw) {
     return `${day}.${month}.${year}`;
 }
 
+function parseDateTime(raw) {
+    if (!raw) return null;
+
+    const text = String(raw).trim();
+    const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (isoMatch) {
+        const year = Number(isoMatch[1]);
+        const month = Number(isoMatch[2]) - 1;
+        const day = Number(isoMatch[3]);
+        const hour = Number(isoMatch[4] || 0);
+        const minute = Number(isoMatch[5] || 0);
+        const second = Number(isoMatch[6] || 0);
+        const date = new Date(year, month, day, hour, minute, second);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    const trMatch = text.match(/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?: (\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (trMatch) {
+        const day = Number(trMatch[1]);
+        const month = Number(trMatch[2]) - 1;
+        const year = Number(trMatch[3]);
+        const hour = Number(trMatch[4] || 0);
+        const minute = Number(trMatch[5] || 0);
+        const second = Number(trMatch[6] || 0);
+        const date = new Date(year, month, day, hour, minute, second);
+        return Number.isNaN(date.getTime()) ? null : date;
+    }
+
+    return null;
+}
+
+function formatDateTime(raw) {
+    const date = parseDateTime(raw);
+    if (!date) return null;
+    const day = String(date.getDate()).padStart(2, "0");
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const year = date.getFullYear();
+    return `${day}.${month}.${year}`;
+}
+
+function getLatestTakasUpdateText(items) {
+    const dates = items
+        .map(x => parseDateTime(x?.Son_Cekim_Zamani))
+        .filter(Boolean)
+        .sort((a, b) => b - a);
+
+    if (!dates.length) return "";
+
+    const latest = formatDateTime(dates[0]);
+    return `<div style="margin:-2px 0 10px; color:#94a3b8;">Son takas update: ${latest}</div>`;
+}
+
 function getMomentumLabel(m) {
     if (m > 10) return "🔥 Güçlü AL";
     if (m > 0) return "🟡 Orta";
@@ -1188,7 +1240,7 @@ function showByTakas() {
             ]
         }));
 
-    startInfiniteList("takas-infinite", "📦 Takas Sıralaması", sorted);
+    startInfiniteList("takas-infinite", "📦 Takas Sıralaması", sorted, getLatestTakasUpdateText(sorted));
 }
 
 function showZenginlik() {
