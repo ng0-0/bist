@@ -625,10 +625,9 @@ function getLatestTakasUpdateText(items) {
         .filter(Boolean)
         .sort((a, b) => b - a);
 
-    if (!dates.length) return "";
+    if (!dates.length) return null;
 
-    const latest = formatDateTime(dates[0]);
-    return `<div style="margin:-2px 0 10px; color:#94a3b8;">Son takas update: ${latest}</div>`;
+    return formatDateTime(dates[0]);
 }
 
 function getMomentumLabel(m) {
@@ -1240,7 +1239,12 @@ function showByTakas() {
             ]
         }));
 
-    startInfiniteList("takas-infinite", "📦 Takas Sıralaması", sorted, getLatestTakasUpdateText(sorted));
+    const latestTakasDate = getLatestTakasUpdateText(sorted);
+    const takasTitle = latestTakasDate
+        ? `📦 Takas Sıralaması (${latestTakasDate})`
+        : "📦 Takas Sıralaması";
+
+    startInfiniteList("takas-infinite", takasTitle, sorted);
 }
 
 function showZenginlik() {
