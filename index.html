@@ -165,8 +165,8 @@ button {
 <div class="top-buttons">
     <button onclick="showRecentBilancos()">Son Bilançolar</button>
     <button onclick="showByAnalyst()">👨‍💼 Analist Sıralaması</button>
-    <button onclick="showByTakas()">📦 Takas Sıralaması</button>
-    <button onclick="showZenginlik()">💸 Öne Çıkanlar</button>
+    <button class="takas-feature" onclick="showByTakas()">📦 Takas Sıralaması</button>
+    <button class="takas-feature" onclick="showZenginlik()">💸 Öne Çıkanlar</button>
 </div>
 
 <div class="input-row">
@@ -191,9 +191,17 @@ const infiniteBatchSize = 10;
 const portfolioSourceBase = "https://dl.dropboxusercontent.com/scl/fi/7cr2pg6akumfs3h0uhn5f/hisselerim.json?rlkey=5fmcv4x84m1cn247gfq2uhi6s";
 const dataSourceBase = "https://dl.dropboxusercontent.com/scl/fi/eiyktxtdnm3jp32hvqnev/data.json?rlkey=my50wvz5dkox9ss3v7j9cvn7e";
 const dataRefreshWindowMs = 5 * 60 * 1000;
+// Takas uyeligi yeniden acilana kadar veriyi koru, sadece arayuzde gizle.
+const SHOW_TAKAS_FEATURES = false;
 let portfolioHoldings = null;
 let portfolioWarmStarted = false;
 let pricesLoaded = false;
+
+if (!SHOW_TAKAS_FEATURES) {
+    document.querySelectorAll(".takas-feature").forEach(button => {
+        button.style.display = "none";
+    });
+}
 
 async function loadData() {
     const source = new URL(dataSourceBase);
@@ -804,8 +812,7 @@ async function search() {
             💰 FK: ${displayFk?.toFixed(2) ?? "NA"} | 
             PD/DD: ${displayPdDd?.toFixed(2) ?? "NA"}<br>
             ${getFiiliDolasimText(stock)}<br>
-            ${getIlkKurumSaklamaText(stock)}<br>
-            ${getTakasAnalizText(stock)}<br>
+            ${SHOW_TAKAS_FEATURES ? `${getIlkKurumSaklamaText(stock)}<br>${getTakasAnalizText(stock)}<br>` : ""}
 
             ${marginText}<br>
             
@@ -911,8 +918,7 @@ function buildTopListItem(s, options = {}) {
                 💰 FK: ${getDisplayFk(s)?.toFixed(2) ?? "NA"} | 
                 PD/DD: ${getDisplayPdDd(s)?.toFixed(2) ?? "NA"}<br>
                 ${getFiiliDolasimText(s)}<br>
-                ${getIlkKurumSaklamaText(s)}<br>
-                ${getTakasAnalizText(s)}<br>
+                ${SHOW_TAKAS_FEATURES ? `${getIlkKurumSaklamaText(s)}<br>${getTakasAnalizText(s)}<br>` : ""}
 
                 ${marginText}<br>
                 📊 Sektöre Göre: ${marginRelLabel}<br>
