@@ -375,7 +375,7 @@ function getProfitabilityText(stock) {
 
 function getFiiliDolasimText(stock) {
     const ratio = Number(stock?.FiiliDolasimOranPct);
-    if (!Number.isFinite(ratio)) return "🔄 Fiili Dolaşım: NA";
+    if (!Number.isFinite(ratio) || ratio <= 0) return "🔄 Fiili Dolaşım: Veri yok";
     let color = "#e5e7eb";
     if (isFiiliDolasimGreen(stock)) {
         color = "#22c55e";
@@ -424,7 +424,7 @@ function getTakasAnalizText(stock) {
 
 function isFiiliDolasimGreen(stock) {
     const ratio = Number(stock?.FiiliDolasimOranPct);
-    return Number.isFinite(ratio) && ratio < 25;
+    return Number.isFinite(ratio) && ratio > 0 && ratio < 25;
 }
 
 function isIlkKurumSaklamaGreen(stock) {
